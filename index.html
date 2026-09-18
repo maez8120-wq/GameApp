@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickleball Pro — Full Tournament Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f4f6fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .session-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .session-select {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .session-select option { color: #333; }
+
+        .topbar-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        .topbar-btn:hover { background: rgba(255,255,255,0.35); }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            overflow-x: auto;
+            position: sticky;
+            top: 60px;
+            z-index: 99;
+        }
+
+        .tab {
+            padding: 14px 24px;
+            border: none;
+            background: none;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: 0.2s;
+            white-space: nowrap;
+            font-size: 0.95em;
+        }
+
+        .tab:hover { color: var(--primary); background: #f8f9fc; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 24px; }
+
+        .panel { display: none; }
+        .panel.active { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.15em;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.82em;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .field input, .field select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95em;
+            font-family: inherit;
+            transition: 0.2s;
+            background: white;
+        }
+
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        }
+
+        .btn {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9em;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(102,126,234,0.35); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-ghost { background: #eef0f6; color: var(--text); }
+        .btn-ghost:hover { background: #e0e3ec; }
+        .btn-sm { padding: 7px 14px; font-size: 0.82em; }
+        .btn-xs { padding: 5px 10px; font-size: 0.78em; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .stat-box {
+            background: white;
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-value { font-size: 2em; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 0.8em; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+        .courts-grid { display: grid; gap: 20px; }
+
+        .court-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 2px solid var(--border);
+            transition: 0.2s;
+        }
+
+        .court-card:hover { border-color: var(--primary); }
+
+        .court-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .court-name { font-size: 1.25em; font-weight: 800; color: var(--primary); }
+
+        .court-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-gray { background: #f3f4f6; color: #4b5563; }
+
+        .timer-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.4em;
+            font-weight: 800;
+            color: var(--text);
+            background: #f3f4f6;
+            padding: 6px 14px;
+            border-radius: 8px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .timer-display.running { background: #dcfce7; color: #166534; }
+        .timer-display.warning { background: #fef3c7; color: #92400e; }
+        .timer-display.danger { background: #fee2e2; color: #991b1b; animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        .player-list { display: grid; gap: 10px; }
+
+        .player-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: center;
+            padding: 12px 14px;
+            background: #f9fafb;
+            border-radius: 12px;
+            transition: 0.2s;
+        }
+
+        .player-row:hover { background: #f3f4f6; transform: translateX(3px); }
+
+        .player-name-lg { font-weight: 700; font-size: 1.05em; }
+        .player-meta { font-size: 0.78em; color: var(--muted); margin-top: 2px; }
+
+        .score-controls { display: flex; align-items: center; gap: 8px; }
+
+        .score-num {
+            font-size: 1.4em;
+            font-weight: 800;
+            color: var(--primary);
+            min-width: 44px;
+            text-align: center;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 9px;
+            font-size: 1.1em;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.15s;
+        }
+
+        .icon-btn:active { transform: scale(0.92); }
+        .icon-btn.plus { background: #dcfce7; color: #166534; }
+        .icon-btn.plus:hover { background: #bbf7d0; }
+        .icon-btn.minus { background: #fee2e2; color: #991b1b; }
+        .icon-btn.minus:hover { background: #fecaca; }
+        .icon-btn.trash { background: #f3f4f6; color: #6b7280; }
+        .icon-btn.trash:hover { background: #fee2e2; color: #991b1b; }
+
+        .match-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .match-team {
+            background: #f9fafb;
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px dashed var(--border);
+        }
+
+        .match-team h4 { margin-bottom: 10px; font-size: 0.9em; color: var(--muted); text-transform: uppercase; }
+
+        .match-team select, .match-team input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-family: inherit;
+            font-size: 0.9em;
+        }
+
+        .match-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: center;
+            padding: 14px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--success);
+        }
+
+        .match-teams { font-weight: 700; font-size: 1em; }
+        .match-score { font-size: 1.3em; font-weight: 800; color: var(--primary); }
+        .match-date { font-size: 0.75em; color: var(--muted); margin-top: 3px; }
+        .winner-tag { font-size: 0.7em; color: var(--success); font-weight: 700; margin-left: 6px; }
+
+        .lb-table { width: 100%; border-collapse: collapse; }
+        .lb-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 0.78em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 2px solid var(--border);
+            letter-spacing: 0.5px;
+        }
+        .lb-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
+        .lb-rank { font-size: 1.1em; font-weight: 800; width: 50px; }
+        .lb-rank.gold { color: #f59e0b; }
+        .lb-rank.silver { color: #9ca3af; }
+        .lb-rank.bronze { color: #b45309; }
+        .winrate-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+            min-width: 80px;
+        }
+        .winrate-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .profile-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+
+        .profile-avatar {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.3em;
+            margin-bottom: 12px;
+        }
+
+        .profile-name { font-weight: 700; font-size: 1.05em; margin-bottom: 8px; }
+
+        .profile-stats { display: flex; gap: 12px; font-size: 0.82em; color: var(--muted); }
+        .profile-stats strong { color: var(--text); font-size: 1.05em; display: block; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.2s; }
+
+        .modal {
+            background: white;
+            border-radius: 18px;
+            padding: 26px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal h3 { margin-bottom: 16px; font-size: 1.3em; }
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--muted);
+            line-height: 1;
+        }
+
+        .qr-box {
+            text-align: center;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-top: 14px;
+        }
+        .qr-box canvas, .qr-box img { border-radius: 8px; }
+
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--muted);
+        }
+        .empty-icon { font-size: 3em; margin-bottom: 12px; }
+        .empty h3 { color: var(--text); margin-bottom: 6px; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text);
+            color: white;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: 0.3s;
+            z-index: 2000;
+            font-size: 0.9em;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        @media (max-width: 640px) {
+            .form-row { grid-template-columns: 1fr; }
+            .match-form-grid { grid-template-columns: 1fr; }
+            .logo { font-size: 1.05em; }
+            .tab { padding: 12px 16px; font-size: 0.85em; }
+            .container { padding: 14px; }
+            .topbar { padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="logo">🏓 Pickleball Pro</div>
+    <div class="session-bar">
+        <select class="session-select" id="sessionSelect" onchange="switchSession(this.value)"></select>
+        <button class="topbar-btn" onclick="openNewSessionModal()">+ Session</button>
+        <button class="topbar-btn" onclick="openSyncModal()">☁️ Sync</button>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+    <button class="tab active" data-tab="courts" onclick="switchTab('courts')">🎾 Courts</button>
+    <button class="tab" data-tab="matches" onclick="switchTab('matches')">🏆 Matches</button>
+    <button class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">📊 Leaderboard</button>
+    <button class="tab" data-tab="players" onclick="switchTab('players')">👥 Players</button>
+</div>
+
+<div class="container">
+    <div class="panel active" id="panel-courts">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="card">
+            <div class="card-title">➕ Add Player</div>
+            <div class="form-row">
+                <div class="field">
+                    <label>Player Name</label>
+                    <input type="text" id="playerName" placeholder="Enter name" maxlength="30">
+                </div>
+                <div class="field">
+                    <label>Court</label>
+                    <select id="courtSelect"></select>
+                </div>
+                <button class="btn btn-primary" onclick="addPlayer()">Add</button>
+            </div>
+        </div>
+        <div id="courtsContainer"></div>
+    </div>
+
+    <div class="panel" id="panel-matches">
+        <div class="card">
+            <div class="card-title">🏆 Log a Match</div>
+            <div class="match-form-grid">
+                <div class="match-team">
+                    <h4>Team A</h4>
+                    <select id="teamA1"></select>
+                    <select id="teamA2"><option value="">— Optional partner —</option></select>
+                </div>
+                <div class="match-team">
+                    <h4>Team B</h4>
+                    <select id="teamB1"></select>
+                    <select id="teamB2"><option value="">— Optional partner —</option></select>
+                </div>
+            </div>
+            <div class="match-form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <label>Team A Score</label>
+                    <input type="number" id="scoreA" value="11" min="0" max="99">
+                </div>
+                <div class="field">
+                    <label>Team B Score</label>
+                    <input type="number" id="scoreB" value="7" min="0" max="99">
+                </div>
+            </div>
+            <button class="btn btn-success" style="margin-top:14px; width:100%;" onclick="logMatch()">✅ Save Match</button>
+        </div>
+        <div class="card">
+            <div class="card-title">📜 Match History</div>
+            <div id="matchHistory"></div>
+        </div>
+    </div>
+
+    <div class="panel" id="panel-leaderboard">
+        <div class="card">
+            <div class="card-title">🥇 Overall Leaderboard</div>
+            <div id="leaderboard"></div>
+        </div>
+    </div>
+
+    <div class="panel" id="panel-players">
+        <div class="card">
+            <div class="card-title">👥 Player Profiles</div>
+            <div id="profiles"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = {
+    sessions: [],
+    activeSessionId: null,
+    courts: ['Court 1', 'Court 2', 'Court 3', 'Court 4'],
+    timers: {}
+};
+
+let timerInterval = null;
+
+/* ============================================================
+   PERSISTENCE
+   ============================================================ */
+function save() {
+    localStorage.setItem('pickleballPro', JSON.stringify({
+        sessions: state.sessions,
+        activeSessionId: state.activeSessionId,
+        courts: state.courts,
+        timers: state.timers
+    }));
+}
+
+function load() {
+    const raw = localStorage.getItem('pickleballPro');
+    if (raw) {
+        try {
+            const data = JSON.parse(raw);
+            state.sessions = data.sessions || [];
+            state.activeSessionId = data.activeSessionId;
+            state.courts = data.courts || ['Court 1','Court 2','Court 3','Court 4'];
+            state.timers = data.timers || {};
+        } catch(e) { console.warn('Load failed', e); }
+    }
+
+    if (state.sessions.length === 0) {
+        const old = localStorage.getItem('pickleballPlayers');
+        const defaultSession = createSessionObject('Default Session');
+        if (old) {
+            try {
+                const oldPlayers = JSON.parse(old);
+                defaultSession.players = oldPlayers.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    court: p.court,
+                    score: p.score,
+                    wins: 0, losses: 0, games: 0
+                }));
+            } catch(e) {}
+        }
+        state.sessions.push(defaultSession);
+        state.activeSessionId = defaultSession.id;
+        save();
+    }
+
+    if (!state.activeSessionId && state.sessions[0]) {
+        state.activeSessionId = state.sessions[0].id;
+    }
+}
+
+/* ============================================================
+   SESSION HELPERS
+   ============================================================ */
+function createSessionObject(name) {
+    return {
+        id: 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+        name: name,
+        createdAt: Date.now(),
+        players: [],
+        matches: []
+    };
+}
+
+function getActiveSession() {
+    return state.sessions.find(s => s.id === state.activeSessionId);
+}
+
+function switchSession(id) {
+    state.activeSessionId = id;
+    stopAllTimers();
+    save();
+    renderAll();
+    toast('Switched to ' + getActiveSession().name);
+}
+
+function openNewSessionModal() {
+    openModal(`
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h3>📅 New Session</h3>
+        <div class="field" style="margin-bottom:14px;">
+            <label>Session Name</label>
+            <input type="text" id="newSessionName" placeholder="e.g., Monday Night League" maxlength="40">
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="createSession()">Create Session</button>
+        <div style="margin-top:18px; border-top:1px solid var(--border); padding-top:14px;">
+            <div style="font-size:0.82em; color:var(--muted); margin-bottom:8px; font-weight:600;">EXISTING SESSIONS</div>
+            ${state.sessions.map(s => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
+                    <span style="font-weight:600;">${escapeHtml(s.name)}</span>
+                    ${state.sessions.length > 1 ? `<button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')">Delete</button>` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `);
+    setTimeout(() => document.getElementById('newSessionName')?.focus(), 100);
+}
+
+function createSession() {
+    const name = document.getElementById('newSessionName').value.trim();
+    if (!name) { toast('Enter a session name'); return; }
+    const s = createSessionObject(name);
+    state.sessions.push(s);
+    state.activeSessionId = s.id;
+    save();
+    closeModal();
+    renderAll();
+    toast('Session created');
+}
+
+function deleteSession(id) {
+    if (state.sessions.length <= 1) { toast('Cannot delete last session'); return; }
+    if (!confirm('Delete this session and all its data?')) return;
+    state.sessions = state.sessions.filter(s => s.id !== id);
+    if (state.activeSessionId === id) state.activeSessionId = state.sessions[0].id;
+    save();
+    closeModal();
+    renderAll();
+    toast('Session deleted');
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+
+/* ============================================================
+   PLAYER OPERATIONS
+   ============================================================ */
+function addPlayer() {
+    const nameInput = document.getElementById('playerName');
+    const courtSelect = document.getElementById('courtSelect');
+    const name = nameInput.value.trim();
+    const court = courtSelect.value;
+    const session = getActiveSession();
+
+    if (!name) { toast('Enter a player name'); return; }
+    if (session.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        toast('Player already exists'); return;
+    }
+
+    session.players.push({
+        id: Date.now() + Math.random(),
+        name, court, score: 0,
+        wins: 0, losses: 0, games: 0
+    });
+
+    save(); renderAll();
+    nameInput.value = '';
+    nameInput.focus();
+    toast(name + ' added to ' + court);
+}
+
+function updateScore(playerId, delta) {
+    const p = getActiveSession().players.find(x => x.id === playerId);
+    if (!p) return;
+    p.score = Math.max(0, p.score + delta);
+    save(); renderCourts(); renderStats();
+}
+
+function deletePlayer(playerId) {
+    const session = getActiveSession();
+    const p = session.players.find(x => x.id === playerId);
+    if (!p) return;
+    if (!confirm(`Remove ${p.name}?`)) return;
+    session.players = session.players.filter(x => x.id !== playerId);
+    save(); renderAll();
+    toast('Player removed');
+}
+
+function resetScores() {
+    if (!confirm('Reset all scores to 0?')) return;
+    getActiveSession().players.forEach(p => p.score = 0);
+    save(); renderCourts(); renderStats();
+    toast('Scores reset');
+}
+
+/* ============================================================
+   MATCH OPERATIONS
+   ============================================================ */
+function logMatch() {
+    const session = getActiveSession();
+    const a1 = document.getElementById('teamA1').value;
+    const a2 = document.getElementById('teamA2').value;
+    const b1 = document.getElementById('teamB1').value;
+    const b2 = document.getElementById('teamB2').value;
+    const scoreA = parseInt(document.getElementById('scoreA').value) || 0;
+    const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
+
+    if (!a1 || !b1) { toast('Select at least one player per team'); return; }
+    if (scoreA === scoreB) { toast('Scores cannot be tied'); return; }
+
+    const teamAIds = [a1, a2].filter(Boolean);
+    const teamBIds = [b1, b2].filter(Boolean);
+
+    if (teamAIds.some(id => teamBIds.includes(id))) {
+        toast('A player cannot be on both teams'); return;
+    }
+
+    const match = {
+        id: 'm_' + Date.now(),
+        teamA: teamAIds, teamB: teamBIds,
+        scoreA, scoreB,
+        winner: scoreA > scoreB ? 'A' : 'B',
+        date: Date.now()
+    };
+    session.matches.unshift(match);
+
+    const updateStats = (id, won) => {
+        const p = session.players.find(x => String(x.id) === String(id));
+        if (!p) return;
+        p.games = (p.games || 0) + 1;
+        if (won) p.wins = (p.wins || 0) + 1;
+        else p.losses = (p.losses || 0) + 1;
+    };
+    teamAIds.forEach(id => updateStats(id, match.winner === 'A'));
+    teamBIds.forEach(id => updateStats(id, match.winner === 'B'));
+
+    save(); renderAll();
+    document.getElementById('scoreA').value = 11;
+    document.getElementById('scoreB').value = 7;
+    toast('Match logged! 🏆');
+}
+
+function deleteMatch(matchId) {
+    if (!confirm('Delete this match? Player stats will not be recalculated.')) return;
+    const session = getActiveSession();
+    session.matches = session.matches.filter(m => m.id !== matchId);
+    save(); renderAll();
+    toast('Match deleted');
+}
+
+/* ============================================================
+   TIMER OPERATIONS
+   ============================================================ */
+function startTimer(court) {
+    const now = Date.now();
+    if (!state.timers[court]) {
+        state.timers[court] = { start: now, elapsed: 0, running: true };
+    } else {
+        state.timers[court].start = now;
+        state.timers[court].running = true;
+    }
+    save(); renderCourts();
+    ensureTimerTick();
+}
+
+function pauseTimer(court) {
+    const t = state.timers[court];
+    if (!t || !t.running) return;
+    t.elapsed = (t.elapsed || 0) + (Date.now() - t.start);
+    t.running = false;
+    save(); renderCourts();
+}
+
+function resetTimer(court) {
+    delete state.timers[court];
+    save(); renderCourts();
+}
+
+function getElapsed(court) {
+    const t = state.timers[court];
+    if (!t) return 0;
+    return (t.elapsed || 0) + (t.running ? Date.now() - t.start : 0);
+}
+
+function formatTime(ms) {
+    const total = Math.floor(ms / 1000);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function ensureTimerTick() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+        let anyRunning = false;
+        for (const c of state.courts) {
+            if (state.timers[c]?.running) { anyRunning = true; break; }
+        }
+        if (!anyRunning) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            return;
+        }
+        for (const c of state.courts) {
+            const el = document.querySelector(`[data-timer="${CSS.escape(c)}"]`);
+            if (el) {
+                const ms = getElapsed(c);
+                el.textContent = formatTime(ms);
+                el.className = 'timer-display ' + timerClass(ms);
+            }
+        }
+    }, 500);
+}
+
+function timerClass(ms) {
+    const min = ms / 60000;
+    if (min >= 20) return 'danger';
+    if (min >= 15) return 'warning';
+    if (min > 0) return 'running';
+    return '';
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderAll() {
+    renderSessionSelect();
+    renderCourtOptions();
+    renderStats();
+    renderCourts();
+    renderMatchForm();
+    renderMatchHistory();
+    renderLeaderboard();
+    renderProfiles();
+}
+
+function renderSessionSelect() {
+    const sel = document.getElementById('sessionSelect');
+    sel.innerHTML = state.sessions.map(s =>
+        `<option value="${s.id}" ${s.id===state.activeSessionId?'selected':''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+}
+
+function renderCourtOptions() {
+    const sel = document.getElementById('courtSelect');
+    sel.innerHTML = state.courts.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function renderStats() {
+    const session = getActiveSession();
+    const activeCourts = new Set(session.players.map(p => p.court)).size;
+    const topScore = session.players.length ? Math.max(...session.players.map(p => p.score)) : 0;
+    document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-box"><div class="stat-value">${session.players.length}</div><div class="stat-label">Players</div></div>
+        <div class="stat-box"><div class="stat-value">${activeCourts}</div><div class="stat-label">Active Courts</div></div>
+        <div class="stat-box"><div class="stat-value">${session.matches.length}</div><div class="stat-label">Matches</div></div>
+        <div class="stat-box"><div class="stat-value">${topScore}</div><div class="stat-label">Top Score</div></div>
+    `;
+}
+
+function renderCourts() {
+    const session = getActiveSession();
+    const container = document.getElementById('courtsContainer');
+
+    if (session.players.length === 0) {
+        container.innerHTML = `
+            <div class="card empty">
+                <div class="empty-icon">🏓</div>
+                <h3>No players yet</h3>
+                <p>Add your first player to get started</p>
+            </div>`;
+        return;
+    }
+
+    const grouped = {};
+    state.courts.forEach(c => grouped[c] = []);
+    session.players.forEach(p => {
+        if (!grouped[p.court]) grouped[p.court] = [];
+        grouped[p.court].push(p);
+    });
+
+    container.innerHTML = state.courts.map(court => {
+        const players = grouped[court] || [];
+        if (players.length === 0) return '';
+        const t = state.timers[court];
+        const elapsed = getElapsed(court);
+        const running = t?.running;
+        const tClass = timerClass(elapsed);
+        const timerText = formatTime(elapsed);
+        const hasTimer = !!t;
+
+        return `
+            <div class="court-card">
+                <div class="court-head">
+                    <div class="court-name">🎾 ${escapeHtml(court)}</div>
+                    <div class="court-actions">
+                        <div class="timer-display ${tClass}" data-timer="${escapeHtml(court)}">${timerText}</div>
+                        ${running
+                            ? `<button class="btn btn-ghost btn-sm" onclick="pauseTimer('${jsStr(court)}')">⏸ Pause</button>`
+                            : `<button class="btn btn-success btn-sm" onclick="startTimer('${jsStr(court)}')">▶ Start</button>`}
+                        ${hasTimer ? `<button class="btn btn-ghost btn-sm" onclick="resetTimer('${jsStr(court)}')">↺</button>` : ''}
+                        <button class="btn btn-ghost btn-sm" onclick="showCourtQR('${jsStr(court)}')">📱 QR</button>
+                        <span class="badge badge-blue">${players.length} player${players.length!==1?'s':''}</span>
+                    </div>
+                </div>
+                <div class="player-list">
+                    ${players.map(p => `
+                        <div class="player-row">
+                            <div>
+                                <div class="player-name-lg">${escapeHtml(p.name)}</div>
+                                <div class="player-meta">${p.wins||0}W · ${p.losses||0}L · ${p.games||0} games</div>
+                            </div>
+                            <div class="score-controls">
+                                <button class="icon-btn minus" onclick="updateScore(${p.id}, -1)">−</button>
+                                <div class="score-num">${p.score}</div>
+                                <button class="icon-btn plus" onclick="updateScore(${p.id}, 1)">+</button>
+                                <button class="icon-btn trash" onclick="deletePlayer(${p.id})">🗑</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('') + (
+        session.players.length > 0
+            ? `<button class="btn btn-danger" style="margin-top:14px;" onclick="resetScores()">🔄 Reset All Scores</button>`
+            : ''
+    );
+}
+
+function renderMatchForm() {
+    const session = getActiveSession();
+    const options = session.players.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    const emptyOpt = '<option value="">— Select player —</option>';
+    const emptyOpt2 = '<option value="">— Optional partner —</option>';
+
+    ['teamA1','teamB1'].forEach(id => {
+        document.getElementById(id).innerHTML = emptyOpt + options;
+    });
+    ['teamA2','teamB2'].forEach(id => {
+        document.getElementById(id).innerHTML = emptyOpt2 + options;
+    });
+}
+
+function renderMatchHistory() {
+    const session = getActiveSession();
+    const el = document.getElementById('matchHistory');
+    if (!session.matches.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">🏆</div><h3>No matches yet</h3><p>Log your first match above</p></div>`;
+        return;
+    }
+
+    el.innerHTML = session.matches.map(m => {
+        const nameOf = id => {
+            const p = session.players.find(x => String(x.id) === String(id));
+            return p ? escapeHtml(p.name) : 'Unknown';
+        };
+        const teamA = m.teamA.map(nameOf).join(' & ');
+        const teamB = m.teamB.map(nameOf).join(' & ');
+        const aWon = m.winner === 'A';
+        const date = new Date(m.date).toLocaleString();
+
+        return `
+            <div class="match-item">
+                <div>
+                    <div class="match-teams">
+                        ${teamA} <span class="winner-tag">${aWon ? '👑 WINNER' : ''}</span>
+                    </div>
+                    <div class="match-teams" style="margin-top:4px;">
+                        ${teamB} <span class="winner-tag">${!aWon ? '👑 WINNER' : ''}</span>
+                    </div>
+                    <div class="match-date">${date}</div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <div class="match-score">${m.scoreA} – ${m.scoreB}</div>
+                    <button class="icon-btn trash" onclick="deleteMatch('${m.id}')">🗑</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderLeaderboard() {
+    const session = getActiveSession();
+    const el = document.getElementById('leaderboard');
+
+    if (!session.players.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><h3>No data yet</h3><p>Add players and log matches</p></div>`;
+        return;
+    }
+
+    const sorted = [...session.players].sort((a,b) => {
+        const wrA = a.games ? a.wins/a.games : 0;
+        const wrB = b.games ? b.wins/b.games : 0;
+        if (wrB !== wrA) return wrB - wrA;
+        return (b.wins||0) - (a.wins||0);
+    });
+
+    el.innerHTML = `
+        <table class="lb-table">
+            <thead>
+                <tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr>
+            </thead>
+            <tbody>
+                ${sorted.map((p,i) => {
+                    const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
+                    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+                    return `
+                        <tr>
+                            <td class="lb-rank ${rankClass}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+                            <td>${escapeHtml(p.name)}</td>
+                            <td>${p.wins||0}</td>
+                            <td>${p.losses||0}</td>
+                            <td>${p.games||0}</td>
+                            <td>
+                                <div style="font-weight:700;">${wr}%</div>
+                                <div class="winrate-bar"><div class="winrate-fill" style="width:${wr}%"></div></div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderProfiles() {
+    const session = getActiveSession();
+    const el = document.getElementById('profiles');
+    if (!session.players.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><h3>No players yet</h3><p>Add players from the Courts tab</p></div>`;
+        return;
+    }
+
+    el.innerHTML = `<div class="profile-grid">${session.players.map(p => {
+        const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
+        return `
+            <div class="profile-card" onclick="showProfile(${p.id})">
+                <div class="profile-avatar">${escapeHtml(p.name.slice(0,1).toUpperCase())}</div>
+                <div class="profile-name">${escapeHtml(p.name)}</div>
+                <div class="profile-stats">
+                    <div><strong>${p.wins||0}</strong>Wins</div>
+                    <div><strong>${p.losses||0}</strong>Losses</div>
+                    <div><strong>${wr}%</strong>Win Rate</div>
+                </div>
+            </div>
+        `;
+    }).join('')}</div>`;
+}
+
+/* ============================================================
+   QR CODES
+   ============================================================ */
+function showCourtQR(court) {
+    const session = getActiveSession();
+    const players = session.players.filter(p => p.court === court);
+    const url = location.origin + location.pathname + '?court=' + encodeURIComponent(court) + '&session=' + session.id;
+    openModal(`
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h3>📱 ${escapeHtml(court)} — Live View</h3>
+        <p style="color:var(--muted); font-size:0.9em; margin-bottom:8px;">Scan to see live scores for this court</p>
+        <div class="qr-box" id="qrTarget"></div>
+        <div style="margin-top:14px; padding:12px; background:#f9fafb; border-radius:10px; font-size:0.85em;">
+            <div style="font-weight:700; margin-bottom:6px;">Players on this court:</div>
+            ${players.map(p => `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${escapeHtml(p.name)}</span><strong style="color:var(--primary)">${p.score}</strong></div>`).join('') || '<div style="color:var(--muted)">No players</div>'}
+        </div>
+    `);
+    setTimeout(() => {
+        const target = document.getElementById('qrTarget');
+        target.innerHTML = '';
+        new QRCode(target, { text: url, width: 220, height: 220, colorDark: '#667eea', colorLight: '#ffffff' });
+    }, 50);
+}
+
+/* ============================================================
+   PROFILE MODAL
+   ============================================================ */
+function showProfile(playerId) {
+    const session = getActiveSession();
+    const p = session.players.find(x => x.id === playerId);
+    if (!p) return;
+    const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
+    const recent = session.matches.filter(m =>
+        m.teamA.includes(String(playerId)) || m.teamB.includes(String(playerId)) ||
+        m.teamA.includes(playerId) || m.teamB.includes(playerId)
+    ).slice(0, 5);
+
+    openModal(`
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+            <div class="profile-avatar" style="margin:0;">${escapeHtml(p.name.slice(0,1).toUpperCase())}</div>
+            <div>
+                <h3 style="margin:0;">${escapeHtml(p.name)}</h3>
+                <div style="color:var(--muted); font-size:0.85em;">${escapeHtml(p.court)}</div>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; text-align:center; margin-bottom:18px;">
+            <div><div style="font-size:1.5em; font-weight:800; color:var(--primary);">${p.wins||0}</div><div style="font-size:0.75em; color:var(--muted);">WINS</div></div>
+            <div><div style="font-size:1.5em; font-weight:800; color:var(--danger);">${p.losses||0}</div><div style="font-size:0.75em; color:var(--muted);">LOSSES</div></div>
+            <div><div style="font-size:1.5em; font-weight:800;">${p.games||0}</div><div style="font-size:0.75em; color:var(--muted);">GAMES</div></div>
+            <div><div style="font-size:1.5em; font-weight:800; color:var(--success);">${wr}%</div><div style="font-size:0.75em; color:var(--muted);">WIN RATE</div></div>
+        </div>
+        <div style="font-weight:700; margin-bottom:10px; font-size:0.9em;">Recent Matches</div>
+        ${recent.length ? recent.map(m => {
+            const onA = m.teamA.includes(String(playerId)) || m.teamA.includes(playerId);
+            const won = (onA && m.winner==='A') || (!onA && m.winner==='B');
+            return `<div style="padding:8px 12px; background:#f9fafb; border-radius:8px; margin-bottom:6px; font-size:0.85em; display:flex; justify-content:space-between;">
+                <span>${m.scoreA} – ${m.scoreB}</span>
+                <span style="color:${won?'var(--success)':'var(--danger)'}; font-weight:700;">${won?'WIN':'LOSS'}</span>
+            </div>`;
+        }).join('') : '<div style="color:var(--muted); font-size:0.85em;">No matches yet</div>'}
+    `);
+}
+
+/* ============================================================
+   SYNC (Firebase-ready)
+   ============================================================ */
+function openSyncModal() {
+    const savedConfig = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
+    openModal(`
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h3>☁️ Cloud Sync</h3>
+        <p style="color:var(--muted); font-size:0.85em; margin-bottom:14px;">
+            Paste your Firebase Realtime Database URL to sync across devices.
+            Data will save to <code>/pickleball/&lt;sessionId&gt;</code>.
+        </p>
+        <div class="field" style="margin-bottom:12px;">
+            <label>Firebase DB URL</label>
+            <input type="text" id="fbUrl" placeholder="https://your-project.firebaseio.com" value="${escapeHtml(savedConfig.url||'')}">
+        </div>
+        <button class="btn btn-primary" style="width:100%; margin-bottom:8px;" onclick="saveSyncConfig()">💾 Save Config</button>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button class="btn btn-success" onclick="pushToCloud()">⬆️ Push</button>
+            <button class="btn btn-ghost" onclick="pullFromCloud()">⬇️ Pull</button>
+        </div>
+        <div id="syncStatus" style="margin-top:12px; font-size:0.85em; color:var(--muted);"></div>
+    `);
+}
+
+function saveSyncConfig() {
+    const url = document.getElementById('fbUrl').value.trim();
+    localStorage.setItem('pickleballSyncConfig', JSON.stringify({ url }));
+    toast('Config saved');
+}
+
+async function pushToCloud() {
+    const config = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
+    if (!config.url) { toast('Set Firebase URL first'); return; }
+    const status = document.getElementById('syncStatus');
+    status.textContent = 'Pushing...';
+    try {
+        const session = getActiveSession();
+        const res = await fetch(`${config.url.replace(/\/$/,'')}/pickleball/${session.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session, timers: state.timers, savedAt: Date.now() })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        status.innerHTML = '<span style="color:var(--success)">✅ Pushed successfully</span>';
+        toast('Synced to cloud');
+    } catch(e) {
+        status.innerHTML = '<span style="color:var(--danger)">❌ ' + e.message + '</span>';
+    }
+}
+
+async function pullFromCloud() {
+    const config = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
+    if (!config.url) { toast('Set Firebase URL first'); return; }
+    const status = document.getElementById('syncStatus');
+    status.textContent = 'Pulling...';
+    try {
+        const session = getActiveSession();
+        const res = await fetch(`${config.url.replace(/\/$/,'')}/pickleball/${session.id}.json`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!data?.session) { status.textContent = 'No data found'; return; }
+        if (!confirm('Replace current session data with cloud data?')) return;
+        const idx = state.sessions.findIndex(s => s.id === session.id);
+        state.sessions[idx] = data.session;
+        state.timers = data.timers || {};
+        save(); renderAll(); closeModal();
+        toast('Pulled from cloud');
+    } catch(e) {
+        status.innerHTML = '<span style="color:var(--danger)">❌ ' + e.message + '</span>';
+    }
+}
+
+/* ============================================================
+   MODAL + TOAST + UTILITIES
+   ============================================================ */
+function openModal(html) {
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+function escapeHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+}
+function jsStr(s) {
+    return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+function stopAllTimers() {
+    Object.keys(state.timers).forEach(c => {
+        if (state.timers[c]?.running) pauseTimer(c);
+    });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+load();
+renderAll();
+document.getElementById('playerName').addEventListener('keypress', e => {
+    if (e.key === 'Enter') addPlayer();
+});
+
+ensureTimerTick();
+
+/* ============================================================
+   QR LANDING VIEW
+   If the URL has ?court=..., show a clean read-only scoreboard
+   instead of the full app. Auto-refreshes every 10 seconds.
+   ============================================================ */
+(function handleQRLanding() {
+    const params = new URLSearchParams(location.search);
+    const court = params.get('court');
+    const sessionId = params.get('session');
+    if (!court) return;
+
+    // Switch to the requested session if present
+    if (sessionId) {
+        const target = state.sessions.find(s => s.id === sessionId);
+        if (target) state.activeSessionId = sessionId;
+    }
+
+    const session = getActiveSession();
+    const players = session.players.filter(p => p.court === court);
+
+    // Replace the whole page with a clean read-only view
+    document.body.innerHTML = `
+        <div style="min-height:100vh; background:linear-gradient(135deg,#667eea,#764ba2); padding:24px; font-family:'Segoe UI',sans-serif;">
+            <div style="max-width:600px; margin:0 auto;">
+                <div style="text-align:center; color:white; margin-bottom:24px;">
+                    <div style="font-size:2em; font-weight:800;">🏓 ${escapeHtml(session.name)}</div>
+                    <div style="opacity:0.9; margin-top:4px;">Live scores — ${escapeHtml(court)}</div>
+                </div>
+                <div style="background:white; border-radius:18px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    ${players.length ? players.map(p => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #e5e7eb;">
+                            <div>
+                                <div style="font-weight:700; font-size:1.15em;">${escapeHtml(p.name)}</div>
+                                <div style="font-size:0.82em; color:#6b7280;">${p.wins||0}W · ${p.losses||0}L</div>
+                            </div>
+                            <div style="font-size:2em; font-weight:800; color:#667eea;">${p.score}</div>
+                        </div>
+                    `).join('') : '<div style="text-align:center; padding:40px; color:#999;">No players on this court yet</div>'}
+                    <div style="text-align:center; margin-top:20px;">
+                        <button onclick="location.href=location.pathname" style="padding:12px 24px; background:#667eea; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:1em;">
+                            Open Full App
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align:center; color:rgba(255,255,255,0.75); margin-top:20px; font-size:0.85em;">
+                    🔄 Auto-refreshes every 10 seconds
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Auto-refresh so spectators see live scores
+    setInterval(() => location.reload(), 10000);
+})();
+</script>
+</body>
+</html>

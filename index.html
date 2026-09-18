@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pickleball Pro — Full Tournament Tracker</title>
+    <title>Pickleball — Full Tournament Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -201,6 +201,50 @@
         .btn-sm { padding: 7px 14px; font-size: 0.82em; }
         .btn-xs { padding: 5px 10px; font-size: 0.78em; }
 
+        /* MATCH TYPE TOGGLE */
+        .match-type-toggle {
+            display: inline-flex;
+            background: #eef0f6;
+            border-radius: 12px;
+            padding: 5px;
+            gap: 4px;
+            margin-bottom: 18px;
+        }
+
+        .match-type-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-family: inherit;
+            color: var(--muted);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .match-type-btn:hover { color: var(--primary); }
+
+        .match-type-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.35);
+        }
+
+        .match-type-hint {
+            font-size: 0.82em;
+            color: var(--muted);
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            background: #f0f4ff;
+            border-left: 3px solid var(--primary);
+            border-radius: 6px;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -261,6 +305,8 @@
         .badge-green { background: #dcfce7; color: #166534; }
         .badge-red { background: #fee2e2; color: #991b1b; }
         .badge-gray { background: #f3f4f6; color: #4b5563; }
+        .badge-purple { background: #ede9fe; color: #5b21b6; }
+        .badge-orange { background: #ffedd5; color: #9a3412; }
 
         .timer-display {
             font-family: 'Courier New', monospace;
@@ -341,9 +387,22 @@
             padding: 14px;
             border-radius: 12px;
             border: 2px dashed var(--border);
+            position: relative;
+            transition: 0.2s;
         }
 
-        .match-team h4 { margin-bottom: 10px; font-size: 0.9em; color: var(--muted); text-transform: uppercase; }
+        .match-team.team-a { border-color: #93c5fd; }
+        .match-team.team-b { border-color: #fca5a5; }
+
+        .match-team h4 {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: var(--muted);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .match-team select, .match-team input {
             width: 100%;
@@ -353,6 +412,40 @@
             margin-bottom: 8px;
             font-family: inherit;
             font-size: 0.9em;
+        }
+
+        .partner-slot {
+            display: block;
+            transition: 0.2s;
+        }
+
+        .partner-slot.hidden {
+            display: none;
+        }
+
+        /* TEAM PREVIEW */
+        .team-preview {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border);
+            font-size: 0.82em;
+            color: var(--muted);
+        }
+
+        .avatar-mini {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7em;
+            flex-shrink: 0;
         }
 
         .match-item {
@@ -371,6 +464,19 @@
         .match-score { font-size: 1.3em; font-weight: 800; color: var(--primary); }
         .match-date { font-size: 0.75em; color: var(--muted); margin-top: 3px; }
         .winner-tag { font-size: 0.7em; color: var(--success); font-weight: 700; margin-left: 6px; }
+        .match-type-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.68em;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .match-type-tag.singles { background: #dbeafe; color: #1e40af; }
+        .match-type-tag.doubles { background: #ede9fe; color: #5b21b6; }
 
         .lb-table { width: 100%; border-collapse: collapse; }
         .lb-table th {
@@ -396,6 +502,34 @@
             min-width: 80px;
         }
         .winrate-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+        /* LEADERBOARD FILTER */
+        .lb-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .lb-filter-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: inherit;
+            color: var(--muted);
+            transition: 0.2s;
+        }
+
+        .lb-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .lb-filter-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
 
         .profile-grid {
             display: grid;
@@ -430,7 +564,7 @@
 
         .profile-name { font-weight: 700; font-size: 1.05em; margin-bottom: 8px; }
 
-        .profile-stats { display: flex; gap: 12px; font-size: 0.82em; color: var(--muted); }
+        .profile-stats { display: flex; gap: 12px; font-size: 0.82em; color: var(--muted); flex-wrap: wrap; }
         .profile-stats strong { color: var(--text); font-size: 1.05em; display: block; }
 
         .modal-overlay {
@@ -510,6 +644,8 @@
             .tab { padding: 12px 16px; font-size: 0.85em; }
             .container { padding: 14px; }
             .topbar { padding: 10px 14px; }
+            .match-type-toggle { width: 100%; }
+            .match-type-btn { flex: 1; justify-content: center; padding: 10px 12px; }
         }
     </style>
 </head>
@@ -556,18 +692,36 @@
     <div class="panel" id="panel-matches">
         <div class="card">
             <div class="card-title">🏆 Log a Match</div>
+
+            <!-- MATCH TYPE TOGGLE -->
+            <div class="match-type-toggle">
+                <button class="match-type-btn active" id="btnSingles" onclick="setMatchType('singles')">
+                    👤 Singles
+                </button>
+                <button class="match-type-btn" id="btnDoubles" onclick="setMatchType('doubles')">
+                    👥 Doubles
+                </button>
+            </div>
+
+            <div class="match-type-hint" id="matchTypeHint">
+                1 player per team — classic one-on-one pickleball
+            </div>
+
             <div class="match-form-grid">
-                <div class="match-team">
-                    <h4>Team A</h4>
-                    <select id="teamA1"></select>
-                    <select id="teamA2"><option value="">— Optional partner —</option></select>
+                <div class="match-team team-a">
+                    <h4>🔵 Team A</h4>
+                    <select id="teamA1" onchange="updateTeamPreview()"></select>
+                    <select id="teamA2" class="partner-slot" onchange="updateTeamPreview()"></select>
+                    <div class="team-preview" id="teamAPreview"></div>
                 </div>
-                <div class="match-team">
-                    <h4>Team B</h4>
-                    <select id="teamB1"></select>
-                    <select id="teamB2"><option value="">— Optional partner —</option></select>
+                <div class="match-team team-b">
+                    <h4>🔴 Team B</h4>
+                    <select id="teamB1" onchange="updateTeamPreview()"></select>
+                    <select id="teamB2" class="partner-slot" onchange="updateTeamPreview()"></select>
+                    <div class="team-preview" id="teamBPreview"></div>
                 </div>
             </div>
+
             <div class="match-form-grid" style="margin-top:14px;">
                 <div class="field">
                     <label>Team A Score</label>
@@ -580,6 +734,7 @@
             </div>
             <button class="btn btn-success" style="margin-top:14px; width:100%;" onclick="logMatch()">✅ Save Match</button>
         </div>
+
         <div class="card">
             <div class="card-title">📜 Match History</div>
             <div id="matchHistory"></div>
@@ -589,6 +744,11 @@
     <div class="panel" id="panel-leaderboard">
         <div class="card">
             <div class="card-title">🥇 Overall Leaderboard</div>
+            <div class="lb-filters">
+                <button class="lb-filter-btn active" data-filter="all" onclick="setLeaderboardFilter('all')">All Matches</button>
+                <button class="lb-filter-btn" data-filter="singles" onclick="setLeaderboardFilter('singles')">👤 Singles</button>
+                <button class="lb-filter-btn" data-filter="doubles" onclick="setLeaderboardFilter('doubles')">👥 Doubles</button>
+            </div>
             <div id="leaderboard"></div>
         </div>
     </div>
@@ -618,6 +778,8 @@ let state = {
     timers: {}
 };
 
+let currentMatchType = 'singles'; // 'singles' | 'doubles'
+let leaderboardFilter = 'all';    // 'all' | 'singles' | 'doubles'
 let timerInterval = null;
 
 /* ============================================================
@@ -655,7 +817,9 @@ function load() {
                     name: p.name,
                     court: p.court,
                     score: p.score,
-                    wins: 0, losses: 0, games: 0
+                    wins: 0, losses: 0, games: 0,
+                    singlesWins: 0, singlesLosses: 0, singlesGames: 0,
+                    doublesWins: 0, doublesLosses: 0, doublesGames: 0
                 }));
             } catch(e) {}
         }
@@ -748,6 +912,59 @@ function switchTab(name) {
 }
 
 /* ============================================================
+   MATCH TYPE (SINGLES / DOUBLES)
+   ============================================================ */
+function setMatchType(type) {
+    currentMatchType = type;
+
+    document.getElementById('btnSingles').classList.toggle('active', type === 'singles');
+    document.getElementById('btnDoubles').classList.toggle('active', type === 'doubles');
+
+    const hint = document.getElementById('matchTypeHint');
+    if (type === 'singles') {
+        hint.textContent = '1 player per team — classic one-on-one pickleball';
+    } else {
+        hint.textContent = '2 players per team — grab a partner for doubles action';
+    }
+
+    // Show/hide partner dropdowns
+    document.querySelectorAll('.partner-slot').forEach(el => {
+        el.classList.toggle('hidden', type === 'singles');
+        if (type === 'singles') el.value = ''; // clear partner selection
+    });
+
+    updateTeamPreview();
+}
+
+function updateTeamPreview() {
+    const session = getActiveSession();
+    const nameOf = id => {
+        if (!id) return null;
+        const p = session.players.find(x => String(x.id) === String(id));
+        return p ? p.name : null;
+    };
+
+    const renderPreview = (team) => {
+        const p1 = nameOf(document.getElementById(`team${team}1`).value);
+        const p2 = currentMatchType === 'doubles' ? nameOf(document.getElementById(`team${team}2`).value) : null;
+        const names = [p1, p2].filter(Boolean);
+
+        if (names.length === 0) {
+            return `<span style="opacity:0.5;">No players selected</span>`;
+        }
+        return names.map(n =>
+            `<span style="display:inline-flex; align-items:center; gap:5px;">
+                <span class="avatar-mini">${escapeHtml(n.slice(0,1).toUpperCase())}</span>
+                <span>${escapeHtml(n)}</span>
+            </span>`
+        ).join('<span style="opacity:0.4;"> + </span>');
+    };
+
+    document.getElementById('teamAPreview').innerHTML = renderPreview('A');
+    document.getElementById('teamBPreview').innerHTML = renderPreview('B');
+}
+
+/* ============================================================
    PLAYER OPERATIONS
    ============================================================ */
 function addPlayer() {
@@ -765,7 +982,9 @@ function addPlayer() {
     session.players.push({
         id: Date.now() + Math.random(),
         name, court, score: 0,
-        wins: 0, losses: 0, games: 0
+        wins: 0, losses: 0, games: 0,
+        singlesWins: 0, singlesLosses: 0, singlesGames: 0,
+        doublesWins: 0, doublesLosses: 0, doublesGames: 0
     });
 
     save(); renderAll();
@@ -804,13 +1023,21 @@ function resetScores() {
 function logMatch() {
     const session = getActiveSession();
     const a1 = document.getElementById('teamA1').value;
-    const a2 = document.getElementById('teamA2').value;
+    const a2 = currentMatchType === 'doubles' ? document.getElementById('teamA2').value : '';
     const b1 = document.getElementById('teamB1').value;
-    const b2 = document.getElementById('teamB2').value;
+    const b2 = currentMatchType === 'doubles' ? document.getElementById('teamB2').value : '';
     const scoreA = parseInt(document.getElementById('scoreA').value) || 0;
     const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
 
+    // Validation
     if (!a1 || !b1) { toast('Select at least one player per team'); return; }
+
+    if (currentMatchType === 'doubles') {
+        if (!a2 || !b2) { toast('Doubles requires 2 players per team'); return; }
+        if (a2 === a1) { toast('Team A players must be different'); return; }
+        if (b2 === b1) { toast('Team B players must be different'); return; }
+    }
+
     if (scoreA === scoreB) { toast('Scores cannot be tied'); return; }
 
     const teamAIds = [a1, a2].filter(Boolean);
@@ -822,19 +1049,30 @@ function logMatch() {
 
     const match = {
         id: 'm_' + Date.now(),
-        teamA: teamAIds, teamB: teamBIds,
+        type: currentMatchType, // 'singles' or 'doubles'
+        teamA: teamAIds,
+        teamB: teamBIds,
         scoreA, scoreB,
         winner: scoreA > scoreB ? 'A' : 'B',
         date: Date.now()
     };
     session.matches.unshift(match);
 
+    // Update player stats (overall + per-type)
     const updateStats = (id, won) => {
         const p = session.players.find(x => String(x.id) === String(id));
         if (!p) return;
+
+        // Overall stats
         p.games = (p.games || 0) + 1;
         if (won) p.wins = (p.wins || 0) + 1;
         else p.losses = (p.losses || 0) + 1;
+
+        // Type-specific stats
+        const typeKey = currentMatchType; // 'singles' or 'doubles'
+        p[`${typeKey}Games`] = (p[`${typeKey}Games`] || 0) + 1;
+        if (won) p[`${typeKey}Wins`] = (p[`${typeKey}Wins`] || 0) + 1;
+        else p[`${typeKey}Losses`] = (p[`${typeKey}Losses`] || 0) + 1;
     };
     teamAIds.forEach(id => updateStats(id, match.winner === 'A'));
     teamBIds.forEach(id => updateStats(id, match.winner === 'B'));
@@ -842,7 +1080,15 @@ function logMatch() {
     save(); renderAll();
     document.getElementById('scoreA').value = 11;
     document.getElementById('scoreB').value = 7;
-    toast('Match logged! 🏆');
+
+    // Clear partner selections after logging (keep first player for speed)
+    if (currentMatchType === 'doubles') {
+        document.getElementById('teamA2').value = '';
+        document.getElementById('teamB2').value = '';
+        updateTeamPreview();
+    }
+
+    toast(`${currentMatchType === 'singles' ? '👤' : '👥'} ${currentMatchType} match logged! 🏆`);
 }
 
 function deleteMatch(matchId) {
@@ -851,6 +1097,17 @@ function deleteMatch(matchId) {
     session.matches = session.matches.filter(m => m.id !== matchId);
     save(); renderAll();
     toast('Match deleted');
+}
+
+/* ============================================================
+   LEADERBOARD FILTER
+   ============================================================ */
+function setLeaderboardFilter(filter) {
+    leaderboardFilter = filter;
+    document.querySelectorAll('.lb-filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === filter);
+    });
+    renderLeaderboard();
 }
 
 /* ============================================================
@@ -955,11 +1212,14 @@ function renderStats() {
     const session = getActiveSession();
     const activeCourts = new Set(session.players.map(p => p.court)).size;
     const topScore = session.players.length ? Math.max(...session.players.map(p => p.score)) : 0;
+    const singlesCount = session.matches.filter(m => m.type === 'singles').length;
+    const doublesCount = session.matches.filter(m => m.type === 'doubles').length;
+
     document.getElementById('statsGrid').innerHTML = `
         <div class="stat-box"><div class="stat-value">${session.players.length}</div><div class="stat-label">Players</div></div>
         <div class="stat-box"><div class="stat-value">${activeCourts}</div><div class="stat-label">Active Courts</div></div>
-        <div class="stat-box"><div class="stat-value">${session.matches.length}</div><div class="stat-label">Matches</div></div>
-        <div class="stat-box"><div class="stat-value">${topScore}</div><div class="stat-label">Top Score</div></div>
+        <div class="stat-box"><div class="stat-value">${singlesCount}</div><div class="stat-label">👤 Singles</div></div>
+        <div class="stat-box"><div class="stat-value">${doublesCount}</div><div class="stat-label">👥 Doubles</div></div>
     `;
 }
 
@@ -1009,11 +1269,17 @@ function renderCourts() {
                     </div>
                 </div>
                 <div class="player-list">
-                    ${players.map(p => `
+                    ${players.map(p => {
+                        const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
+                        const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
+                        return `
                         <div class="player-row">
                             <div>
                                 <div class="player-name-lg">${escapeHtml(p.name)}</div>
-                                <div class="player-meta">${p.wins||0}W · ${p.losses||0}L · ${p.games||0} games</div>
+                                <div class="player-meta">
+                                    ${p.wins||0}W · ${p.losses||0}L · ${p.games||0} games
+                                    ${p.games ? `&nbsp;|&nbsp; 👤 ${singlesWR}% · 👥 ${doublesWR}%` : ''}
+                                </div>
                             </div>
                             <div class="score-controls">
                                 <button class="icon-btn minus" onclick="updateScore(${p.id}, -1)">−</button>
@@ -1022,7 +1288,7 @@ function renderCourts() {
                                 <button class="icon-btn trash" onclick="deletePlayer(${p.id})">🗑</button>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             </div>
         `;
@@ -1045,6 +1311,9 @@ function renderMatchForm() {
     ['teamA2','teamB2'].forEach(id => {
         document.getElementById(id).innerHTML = emptyOpt2 + options;
     });
+
+    // Sync match type UI
+    setMatchType(currentMatchType);
 }
 
 function renderMatchHistory() {
@@ -1064,6 +1333,8 @@ function renderMatchHistory() {
         const teamB = m.teamB.map(nameOf).join(' & ');
         const aWon = m.winner === 'A';
         const date = new Date(m.date).toLocaleString();
+        const type = m.type || 'doubles'; // fallback for old matches
+        const typeIcon = type === 'singles' ? '👤' : '👥';
 
         return `
             <div class="match-item">
@@ -1074,7 +1345,10 @@ function renderMatchHistory() {
                     <div class="match-teams" style="margin-top:4px;">
                         ${teamB} <span class="winner-tag">${!aWon ? '👑 WINNER' : ''}</span>
                     </div>
-                    <div class="match-date">${date}</div>
+                    <div class="match-date">
+                        <span class="match-type-tag ${type}">${typeIcon} ${type}</span>
+                        ${date}
+                    </div>
                 </div>
                 <div style="display:flex; gap:12px; align-items:center;">
                     <div class="match-score">${m.scoreA} – ${m.scoreB}</div>
@@ -1094,12 +1368,50 @@ function renderLeaderboard() {
         return;
     }
 
-    const sorted = [...session.players].sort((a,b) => {
-        const wrA = a.games ? a.wins/a.games : 0;
-        const wrB = b.games ? b.wins/b.games : 0;
+    // Determine which stats to sort by based on filter
+    const getStats = (p) => {
+        if (leaderboardFilter === 'singles') {
+            return {
+                wins: p.singlesWins || 0,
+                losses: p.singlesLosses || 0,
+                games: p.singlesGames || 0
+            };
+        }
+        if (leaderboardFilter === 'doubles') {
+            return {
+                wins: p.doublesWins || 0,
+                losses: p.doublesLosses || 0,
+                games: p.doublesGames || 0
+            };
+        }
+        return {
+            wins: p.wins || 0,
+            losses: p.losses || 0,
+            games: p.games || 0
+        };
+    };
+
+    const sorted = [...session.players].sort((a, b) => {
+        const sa = getStats(a), sb = getStats(b);
+        const wrA = sa.games ? sa.wins / sa.games : 0;
+        const wrB = sb.games ? sb.wins / sb.games : 0;
         if (wrB !== wrA) return wrB - wrA;
-        return (b.wins||0) - (a.wins||0);
+        return sb.wins - sa.wins;
     });
+
+    // Only show players who have played in this mode (if filtering)
+    const filtered = leaderboardFilter === 'all'
+        ? sorted
+        : sorted.filter(p => getStats(p).games > 0);
+
+    if (filtered.length === 0) {
+        el.innerHTML = `<div class="empty">
+            <div class="empty-icon">${leaderboardFilter === 'singles' ? '👤' : '👥'}</div>
+            <h3>No ${leaderboardFilter} matches yet</h3>
+            <p>Log a ${leaderboardFilter} match to see rankings</p>
+        </div>`;
+        return;
+    }
 
     el.innerHTML = `
         <table class="lb-table">
@@ -1107,16 +1419,17 @@ function renderLeaderboard() {
                 <tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr>
             </thead>
             <tbody>
-                ${sorted.map((p,i) => {
-                    const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
-                    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+                ${filtered.map((p, i) => {
+                    const s = getStats(p);
+                    const wr = s.games ? Math.round(s.wins / s.games * 100) : 0;
+                    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
                     return `
                         <tr>
-                            <td class="lb-rank ${rankClass}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+                            <td class="lb-rank ${rankClass}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
                             <td>${escapeHtml(p.name)}</td>
-                            <td>${p.wins||0}</td>
-                            <td>${p.losses||0}</td>
-                            <td>${p.games||0}</td>
+                            <td>${s.wins}</td>
+                            <td>${s.losses}</td>
+                            <td>${s.games}</td>
                             <td>
                                 <div style="font-weight:700;">${wr}%</div>
                                 <div class="winrate-bar"><div class="winrate-fill" style="width:${wr}%"></div></div>
@@ -1139,14 +1452,16 @@ function renderProfiles() {
 
     el.innerHTML = `<div class="profile-grid">${session.players.map(p => {
         const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
+        const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
+        const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
         return `
             <div class="profile-card" onclick="showProfile(${p.id})">
                 <div class="profile-avatar">${escapeHtml(p.name.slice(0,1).toUpperCase())}</div>
                 <div class="profile-name">${escapeHtml(p.name)}</div>
                 <div class="profile-stats">
-                    <div><strong>${p.wins||0}</strong>Wins</div>
-                    <div><strong>${p.losses||0}</strong>Losses</div>
-                    <div><strong>${wr}%</strong>Win Rate</div>
+                    <div><strong>${wr}%</strong>Overall</div>
+                    <div><strong>${singlesWR}%</strong>👤 Singles</div>
+                    <div><strong>${doublesWR}%</strong>👥 Doubles</div>
                 </div>
             </div>
         `;
@@ -1185,9 +1500,12 @@ function showProfile(playerId) {
     const p = session.players.find(x => x.id === playerId);
     if (!p) return;
     const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
+    const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
+    const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
+
     const recent = session.matches.filter(m =>
-        m.teamA.includes(String(playerId)) || m.teamB.includes(String(playerId)) ||
-        m.teamA.includes(playerId) || m.teamB.includes(playerId)
+        m.teamA.map(String).includes(String(playerId)) ||
+        m.teamB.map(String).includes(String(playerId))
     ).slice(0, 5);
 
     openModal(`
@@ -1199,19 +1517,36 @@ function showProfile(playerId) {
                 <div style="color:var(--muted); font-size:0.85em;">${escapeHtml(p.court)}</div>
             </div>
         </div>
+
+        <div style="font-weight:700; margin-bottom:10px; font-size:0.9em;">Overall</div>
         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; text-align:center; margin-bottom:18px;">
             <div><div style="font-size:1.5em; font-weight:800; color:var(--primary);">${p.wins||0}</div><div style="font-size:0.75em; color:var(--muted);">WINS</div></div>
             <div><div style="font-size:1.5em; font-weight:800; color:var(--danger);">${p.losses||0}</div><div style="font-size:0.75em; color:var(--muted);">LOSSES</div></div>
             <div><div style="font-size:1.5em; font-weight:800;">${p.games||0}</div><div style="font-size:0.75em; color:var(--muted);">GAMES</div></div>
             <div><div style="font-size:1.5em; font-weight:800; color:var(--success);">${wr}%</div><div style="font-size:0.75em; color:var(--muted);">WIN RATE</div></div>
         </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
+            <div style="padding:12px; background:#eff6ff; border-radius:10px;">
+                <div style="font-weight:700; font-size:0.85em; color:#1e40af; margin-bottom:8px;">👤 Singles</div>
+                <div style="font-size:1.3em; font-weight:800; color:#1e40af;">${singlesWR}%</div>
+                <div style="font-size:0.78em; color:#1e40af; opacity:0.8;">${p.singlesWins||0}W · ${p.singlesLosses||0}L</div>
+            </div>
+            <div style="padding:12px; background:#f5f3ff; border-radius:10px;">
+                <div style="font-weight:700; font-size:0.85em; color:#5b21b6; margin-bottom:8px;">👥 Doubles</div>
+                <div style="font-size:1.3em; font-weight:800; color:#5b21b6;">${doublesWR}%</div>
+                <div style="font-size:0.78em; color:#5b21b6; opacity:0.8;">${p.doublesWins||0}W · ${p.doublesLosses||0}L</div>
+            </div>
+        </div>
+
         <div style="font-weight:700; margin-bottom:10px; font-size:0.9em;">Recent Matches</div>
         ${recent.length ? recent.map(m => {
-            const onA = m.teamA.includes(String(playerId)) || m.teamA.includes(playerId);
-            const won = (onA && m.winner==='A') || (!onA && m.winner==='B');
-            return `<div style="padding:8px 12px; background:#f9fafb; border-radius:8px; margin-bottom:6px; font-size:0.85em; display:flex; justify-content:space-between;">
-                <span>${m.scoreA} – ${m.scoreB}</span>
-                <span style="color:${won?'var(--success)':'var(--danger)'}; font-weight:700;">${won?'WIN':'LOSS'}</span>
+            const onA = m.teamA.map(String).includes(String(playerId));
+            const won = (onA && m.winner === 'A') || (!onA && m.winner === 'B');
+            const typeIcon = (m.type === 'singles') ? '👤' : '👥';
+            return `<div style="padding:8px 12px; background:#f9fafb; border-radius:8px; margin-bottom:6px; font-size:0.85em; display:flex; justify-content:space-between; align-items:center;">
+                <span>${typeIcon} ${m.scoreA} – ${m.scoreB}</span>
+                <span style="color:${won ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${won ? 'WIN' : 'LOSS'}</span>
             </div>`;
         }).join('') : '<div style="color:var(--muted); font-size:0.85em;">No matches yet</div>'}
     `);
@@ -1334,8 +1669,6 @@ ensureTimerTick();
 
 /* ============================================================
    QR LANDING VIEW
-   If the URL has ?court=..., show a clean read-only scoreboard
-   instead of the full app. Auto-refreshes every 10 seconds.
    ============================================================ */
 (function handleQRLanding() {
     const params = new URLSearchParams(location.search);
@@ -1343,7 +1676,6 @@ ensureTimerTick();
     const sessionId = params.get('session');
     if (!court) return;
 
-    // Switch to the requested session if present
     if (sessionId) {
         const target = state.sessions.find(s => s.id === sessionId);
         if (target) state.activeSessionId = sessionId;
@@ -1352,7 +1684,6 @@ ensureTimerTick();
     const session = getActiveSession();
     const players = session.players.filter(p => p.court === court);
 
-    // Replace the whole page with a clean read-only view
     document.body.innerHTML = `
         <div style="min-height:100vh; background:linear-gradient(135deg,#667eea,#764ba2); padding:24px; font-family:'Segoe UI',sans-serif;">
             <div style="max-width:600px; margin:0 auto;">
@@ -1383,7 +1714,6 @@ ensureTimerTick();
         </div>
     `;
 
-    // Auto-refresh so spectators see live scores
     setInterval(() => location.reload(), 10000);
 })();
 </script>

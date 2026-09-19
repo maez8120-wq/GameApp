@@ -1186,6 +1186,20 @@ function timerClass(ms) {
    RENDER
    ============================================================ */
 function renderAll() {
+function renderAll() {
+    // Ensure active session is always valid & arrays exist
+    if (!Array.isArray(state.sessions) || state.sessions.length === 0) {
+        state.sessions = [createSessionObject('Default Session')];
+        state.activeSessionId = state.sessions[0].id;
+    }
+    let session = getActiveSession();
+    if (!session) {
+        state.activeSessionId = state.sessions[0].id;
+        session = state.sessions[0];
+    }
+    if (!Array.isArray(session.players)) session.players = [];
+    if (!Array.isArray(session.matches)) session.matches = [];
+
     renderSessionSelect();
     renderCourtOptions();
     renderStats();

@@ -1,1876 +1,339 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pickleball — Full Tournament Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --primary: #667eea;
-            --primary-dark: #764ba2;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --bg: #f4f6fb;
-            --card: #ffffff;
-            --text: #1f2937;
-            --muted: #6b7280;
-            --border: #e5e7eb;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            padding-bottom: 80px;
-        }
-
-        .topbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 20px rgba(102,126,234,0.3);
-            flex-wrap: wrap;
-        }
-
-        .logo {
-            font-size: 1.3em;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-        }
-
-        .session-bar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .session-select {
-            padding: 8px 14px;
-            border-radius: 8px;
-            border: none;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .session-select option { color: #333; }
-
-        .topbar-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.85em;
-            white-space: nowrap;
-        }
-
-        .topbar-btn:hover { background: rgba(255,255,255,0.35); }
-
-        .tabs {
-            display: flex;
-            background: white;
-            border-bottom: 2px solid var(--border);
-            overflow-x: auto;
-            position: sticky;
-            top: 60px;
-            z-index: 99;
-        }
-
-        .tab {
-            padding: 14px 24px;
-            border: none;
-            background: none;
-            font-weight: 600;
-            color: var(--muted);
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: 0.2s;
-            white-space: nowrap;
-            font-size: 0.95em;
-        }
-
-        .tab:hover { color: var(--primary); background: #f8f9fc; }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-        .container { max-width: 1300px; margin: 0 auto; padding: 24px; }
-
-        .panel { display: none; }
-        .panel.active { display: block; animation: fadeIn 0.3s; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 22px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 1.15em;
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr auto;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .field label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.82em;
-            font-weight: 600;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .field input, .field select {
-            width: 100%;
-            padding: 11px 14px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 0.95em;
-            font-family: inherit;
-            transition: 0.2s;
-            background: white;
-        }
-
-        .field input:focus, .field select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
-        }
-
-        .btn {
-            padding: 11px 22px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.9em;
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: center;
-        }
-
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(102,126,234,0.35); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #16a34a; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-ghost { background: #eef0f6; color: var(--text); }
-        .btn-ghost:hover { background: #e0e3ec; }
-        .btn-sm { padding: 7px 14px; font-size: 0.82em; }
-        .btn-xs { padding: 5px 10px; font-size: 0.78em; }
-
-        /* MATCH TYPE TOGGLE */
-        .match-type-toggle {
-            display: inline-flex;
-            background: #eef0f6;
-            border-radius: 12px;
-            padding: 5px;
-            gap: 4px;
-            margin-bottom: 18px;
-        }
-
-        .match-type-btn {
-            padding: 10px 24px;
-            border: none;
-            background: transparent;
-            border-radius: 9px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-family: inherit;
-            color: var(--muted);
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .match-type-btn:hover { color: var(--primary); }
-
-        .match-type-btn.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102,126,234,0.35);
-        }
-
-        .match-type-hint {
-            font-size: 0.82em;
-            color: var(--muted);
-            margin-bottom: 14px;
-            padding: 8px 12px;
-            background: #f0f4ff;
-            border-left: 3px solid var(--primary);
-            border-radius: 6px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 14px;
-            margin-bottom: 22px;
-        }
-
-        .stat-box {
-            background: white;
-            border-radius: 14px;
-            padding: 18px;
-            text-align: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            border-left: 4px solid var(--primary);
-        }
-
-        .stat-value { font-size: 2em; font-weight: 800; color: var(--primary); }
-        .stat-label { font-size: 0.8em; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-
-        .courts-grid { display: grid; gap: 20px; }
-
-        .court-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            border: 2px solid var(--border);
-            transition: 0.2s;
-        }
-
-        .court-card:hover { border-color: var(--primary); }
-
-        .court-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--border);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .court-name { font-size: 1.25em; font-weight: 800; color: var(--primary); }
-
-        .court-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-
-        .badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.78em;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .badge-blue { background: #dbeafe; color: #1e40af; }
-        .badge-green { background: #dcfce7; color: #166534; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
-        .badge-gray { background: #f3f4f6; color: #4b5563; }
-        .badge-purple { background: #ede9fe; color: #5b21b6; }
-        .badge-orange { background: #ffedd5; color: #9a3412; }
-
-        .timer-display {
-            font-family: 'Courier New', monospace;
-            font-size: 1.4em;
-            font-weight: 800;
-            color: var(--text);
-            background: #f3f4f6;
-            padding: 6px 14px;
-            border-radius: 8px;
-            min-width: 90px;
-            text-align: center;
-        }
-
-        .timer-display.running { background: #dcfce7; color: #166534; }
-        .timer-display.warning { background: #fef3c7; color: #92400e; }
-        .timer-display.danger { background: #fee2e2; color: #991b1b; animation: pulse 1s infinite; }
-
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-
-        .player-list { display: grid; gap: 10px; }
-
-        .player-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 14px;
-            align-items: center;
-            padding: 12px 14px;
-            background: #f9fafb;
-            border-radius: 12px;
-            transition: 0.2s;
-        }
-
-        .player-row:hover { background: #f3f4f6; transform: translateX(3px); }
-
-        .player-name-lg { font-weight: 700; font-size: 1.05em; }
-        .player-meta { font-size: 0.78em; color: var(--muted); margin-top: 2px; }
-
-        .score-controls { display: flex; align-items: center; gap: 8px; }
-
-        .score-num {
-            font-size: 1.4em;
-            font-weight: 800;
-            color: var(--primary);
-            min-width: 44px;
-            text-align: center;
-        }
-
-        .icon-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 9px;
-            font-size: 1.1em;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.15s;
-        }
-
-        .icon-btn:active { transform: scale(0.92); }
-        .icon-btn.plus { background: #dcfce7; color: #166534; }
-        .icon-btn.plus:hover { background: #bbf7d0; }
-        .icon-btn.minus { background: #fee2e2; color: #991b1b; }
-        .icon-btn.minus:hover { background: #fecaca; }
-        .icon-btn.trash { background: #f3f4f6; color: #6b7280; }
-        .icon-btn.trash:hover { background: #fee2e2; color: #991b1b; }
-
-        .match-form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .match-team {
-            background: #f9fafb;
-            padding: 14px;
-            border-radius: 12px;
-            border: 2px dashed var(--border);
-            position: relative;
-            transition: 0.2s;
-        }
-
-        .match-team.team-a { border-color: #93c5fd; }
-        .match-team.team-b { border-color: #fca5a5; }
-
-        .match-team h4 {
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            color: var(--muted);
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .match-team select, .match-team input {
-            width: 100%;
-            padding: 9px 12px;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-family: inherit;
-            font-size: 0.9em;
-        }
-
-        .partner-slot {
-            display: block;
-            transition: 0.2s;
-        }
-
-        .partner-slot.hidden {
-            display: none;
-        }
-
-        /* TEAM PREVIEW */
-        .team-preview {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border);
-            font-size: 0.82em;
-            color: var(--muted);
-        }
-
-        .avatar-mini {
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.7em;
-            flex-shrink: 0;
-        }
-
-        .match-item {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 14px;
-            align-items: center;
-            padding: 14px;
-            background: #f9fafb;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--success);
-        }
-
-        .match-teams { font-weight: 700; font-size: 1em; }
-        .match-score { font-size: 1.3em; font-weight: 800; color: var(--primary); }
-        .match-date { font-size: 0.75em; color: var(--muted); margin-top: 3px; }
-        .winner-tag { font-size: 0.7em; color: var(--success); font-weight: 700; margin-left: 6px; }
-        .match-type-tag {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.68em;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-        .match-type-tag.singles { background: #dbeafe; color: #1e40af; }
-        .match-type-tag.doubles { background: #ede9fe; color: #5b21b6; }
-
-        .lb-table { width: 100%; border-collapse: collapse; }
-        .lb-table th {
-            text-align: left;
-            padding: 12px;
-            font-size: 0.78em;
-            text-transform: uppercase;
-            color: var(--muted);
-            border-bottom: 2px solid var(--border);
-            letter-spacing: 0.5px;
-        }
-        .lb-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
-        .lb-rank { font-size: 1.1em; font-weight: 800; width: 50px; }
-        .lb-rank.gold { color: #f59e0b; }
-        .lb-rank.silver { color: #9ca3af; }
-        .lb-rank.bronze { color: #b45309; }
-        .winrate-bar {
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 4px;
-            min-width: 80px;
-        }
-        .winrate-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); }
-
-        /* LEADERBOARD FILTER */
-        .lb-filters {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .lb-filter-btn {
-            padding: 8px 16px;
-            border: 2px solid var(--border);
-            background: white;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-family: inherit;
-            color: var(--muted);
-            transition: 0.2s;
-        }
-
-        .lb-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
-        .lb-filter-btn.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-color: transparent;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-        }
-
-        .profile-card {
-            background: white;
-            border-radius: 14px;
-            padding: 18px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            cursor: pointer;
-            transition: 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .profile-card:hover { transform: translateY(-3px); border-color: var(--primary); }
-
-        .profile-avatar {
-            width: 52px; height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.3em;
-            margin-bottom: 12px;
-        }
-
-        .profile-name { font-weight: 700; font-size: 1.05em; margin-bottom: 8px; }
-
-        .profile-stats { display: flex; gap: 12px; font-size: 0.82em; color: var(--muted); flex-wrap: wrap; }
-        .profile-stats strong { color: var(--text); font-size: 1.05em; display: block; }
-
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-            backdrop-filter: blur(4px);
-        }
-        .modal-overlay.show { display: flex; animation: fadeIn 0.2s; }
-
-        .modal {
-            background: white;
-            border-radius: 18px;
-            padding: 26px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-
-        .modal h3 { margin-bottom: 16px; font-size: 1.3em; }
-        .modal-close {
-            float: right;
-            background: none;
-            border: none;
-            font-size: 1.5em;
-            cursor: pointer;
-            color: var(--muted);
-            line-height: 1;
-        }
-
-        .qr-box {
-            text-align: center;
-            padding: 20px;
-            background: #f9fafb;
-            border-radius: 12px;
-            margin-top: 14px;
-        }
-        .qr-box canvas, .qr-box img { border-radius: 8px; }
-
-        .empty {
-            text-align: center;
-            padding: 50px 20px;
-            color: var(--muted);
-        }
-        .empty-icon { font-size: 3em; margin-bottom: 12px; }
-        .empty h3 { color: var(--text); margin-bottom: 6px; }
-
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--text);
-            color: white;
-            padding: 12px 22px;
-            border-radius: 10px;
-            font-weight: 600;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-            opacity: 0;
-            transition: 0.3s;
-            z-index: 2000;
-            font-size: 0.9em;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-
-        @media (max-width: 640px) {
-            .form-row { grid-template-columns: 1fr; }
-            .match-form-grid { grid-template-columns: 1fr; }
-            .logo { font-size: 1.05em; }
-            .tab { padding: 12px 16px; font-size: 0.85em; }
-            .container { padding: 14px; }
-            .topbar { padding: 10px 14px; }
-            .match-type-toggle { width: 100%; }
-            .match-type-btn { flex: 1; justify-content: center; padding: 10px 12px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Shuffler</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  header {
+    background: #ffd60a;
+    padding: 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.8rem; color: #1e3c72; }
+  header p { color: #555; margin-top: 4px; font-size: 0.9rem; }
+  .content { padding: 24px; }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  input[type="text"] {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: #2a5298; }
+  button {
+    padding: 14px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-add { background: #2a5298; color: #fff; }
+  .btn-shuffle { background: #ffd60a; color: #1e3c72; width: 100%; padding: 18px; font-size: 1.1rem; margin-top: 10px; }
+  .btn-clear { background: #eee; color: #666; width: 100%; margin-top: 10px; padding: 12px; }
+  .btn-remove {
+    background: #ff4d4d;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+  }
+  h2 {
+    font-size: 1.1rem;
+    color: #1e3c72;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .count-badge {
+    background: #e8eefc;
+    color: #2a5298;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+  }
+  ul { list-style: none; }
+  #playerList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f7f9fc;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .empty-msg {
+    text-align: center;
+    color: #999;
+    padding: 30px;
+    font-style: italic;
+  }
+  .match {
+    background: #f7f9fc;
+    border-left: 5px solid #2a5298;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    animation: fadeIn 0.4s;
+  }
+  .match-title {
+    font-weight: 700;
+    color: #2a5298;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .teams {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+  .team {
+    background: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid #e0e7f5;
+  }
+  .team-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .team-name { font-weight: 600; font-size: 0.95rem; }
+  .vs {
+    font-weight: 800;
+    color: #ffd60a;
+    background: #1e3c72;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+  }
+  .bye {
+    background: #fff8e1;
+    border-left: 5px solid #ffd60a;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    color: #8a6d00;
+    font-size: 0.9rem;
+  }
+  .section { margin-top: 24px; }
+  .hidden { display: none; }
+</style>
 </head>
 <body>
-
-<!-- TOP BAR -->
-<div class="topbar">
-    <div class="logo">🏓 Pickleball Pro</div>
-    <div class="session-bar">
-        <select class="session-select" id="sessionSelect" onchange="switchSession(this.value)"></select>
-        <button class="topbar-btn" onclick="openNewSessionModal()">+ Session</button>
-        <button class="topbar-btn" onclick="openSyncModal()">☁️ Sync</button>
-    </div>
-</div>
-
-<!-- TABS -->
-<div class="tabs">
-    <button class="tab active" data-tab="courts" onclick="switchTab('courts')">🎾 Courts</button>
-    <button class="tab" data-tab="matches" onclick="switchTab('matches')">🏆 Matches</button>
-    <button class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">📊 Leaderboard</button>
-    <button class="tab" data-tab="players" onclick="switchTab('players')">👥 Players</button>
-</div>
-
 <div class="container">
-    <div class="panel active" id="panel-courts">
-        <div class="stats-grid" id="statsGrid"></div>
-        <div class="card">
-            <div class="card-title">➕ Add Player</div>
-            <div class="form-row">
-                <div class="field">
-                    <label>Player Name</label>
-                    <input type="text" id="playerName" placeholder="Enter name" maxlength="30">
-                </div>
-                <div class="field">
-                    <label>Court</label>
-                    <select id="courtSelect"></select>
-                </div>
-                <button class="btn btn-primary" onclick="addPlayer()">Add</button>
-            </div>
-        </div>
-        <div id="courtsContainer"></div>
+  <header>
+    <h1>🏓 Pickleball Shuffler</h1>
+    <p>Add players, shuffle, and get your matches</p>
+  </header>
+
+  <div class="content">
+    <div class="input-row">
+      <input type="text" id="playerInput" placeholder="Enter player name..." maxlength="30">
+      <button class="btn-add" onclick="addPlayer()">Add</button>
     </div>
 
-    <div class="panel" id="panel-matches">
-        <div class="card">
-            <div class="card-title">🏆 Log a Match</div>
+    <h2>
+      Players
+      <span class="count-badge" id="countBadge">0</span>
+    </h2>
 
-            <!-- MATCH TYPE TOGGLE -->
-            <div class="match-type-toggle">
-                <button class="match-type-btn active" id="btnSingles" onclick="setMatchType('singles')">
-                    👤 Singles
-                </button>
-                <button class="match-type-btn" id="btnDoubles" onclick="setMatchType('doubles')">
-                    👥 Doubles
-                </button>
-            </div>
+    <ul id="playerList">
+      <li class="empty-msg">No players yet. Add some above!</li>
+    </ul>
 
-            <div class="match-type-hint" id="matchTypeHint">
-                1 player per team — classic one-on-one pickleball
-            </div>
+    <button class="btn-shuffle" onclick="shufflePlayers()" id="shuffleBtn" disabled>
+      🎲 Shuffle & Generate Matches
+    </button>
+    <button class="btn-clear" onclick="clearAll()">Clear All</button>
 
-            <div class="match-form-grid">
-                <div class="match-team team-a">
-                    <h4>🔵 Team A</h4>
-                    <select id="teamA1" onchange="updateTeamPreview()"></select>
-                    <select id="teamA2" class="partner-slot" onchange="updateTeamPreview()"></select>
-                    <div class="team-preview" id="teamAPreview"></div>
-                </div>
-                <div class="match-team team-b">
-                    <h4>🔴 Team B</h4>
-                    <select id="teamB1" onchange="updateTeamPreview()"></select>
-                    <select id="teamB2" class="partner-slot" onchange="updateTeamPreview()"></select>
-                    <div class="team-preview" id="teamBPreview"></div>
-                </div>
-            </div>
-
-            <div class="match-form-grid" style="margin-top:14px;">
-                <div class="field">
-                    <label>Team A Score</label>
-                    <input type="number" id="scoreA" value="11" min="0" max="99">
-                </div>
-                <div class="field">
-                    <label>Team B Score</label>
-                    <input type="number" id="scoreB" value="7" min="0" max="99">
-                </div>
-            </div>
-            <button class="btn btn-success" style="margin-top:14px; width:100%;" onclick="logMatch()">✅ Save Match</button>
-        </div>
-
-        <div class="card">
-            <div class="card-title">📜 Match History</div>
-            <div id="matchHistory"></div>
-        </div>
+    <div class="section hidden" id="resultsSection">
+      <h2>Matches</h2>
+      <div id="matches"></div>
     </div>
-
-    <div class="panel" id="panel-leaderboard">
-        <div class="card">
-            <div class="card-title">🥇 Overall Leaderboard</div>
-            <div class="lb-filters">
-                <button class="lb-filter-btn active" data-filter="all" onclick="setLeaderboardFilter('all')">All Matches</button>
-                <button class="lb-filter-btn" data-filter="singles" onclick="setLeaderboardFilter('singles')">👤 Singles</button>
-                <button class="lb-filter-btn" data-filter="doubles" onclick="setLeaderboardFilter('doubles')">👥 Doubles</button>
-            </div>
-            <div id="leaderboard"></div>
-        </div>
-    </div>
-
-    <div class="panel" id="panel-players">
-        <div class="card">
-            <div class="card-title">👥 Player Profiles</div>
-            <div id="profiles"></div>
-        </div>
-    </div>
+  </div>
 </div>
-
-<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
-    <div class="modal" id="modalContent"></div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   STATE
-   ============================================================ */
-let state = {
-    sessions: [],
-    activeSessionId: null,
-    courts: ['Court 1', 'Court 2', 'Court 3', 'Court 4'],
-    timers: {}
-};
+  let players = [];
 
-let currentMatchType = 'singles'; // 'singles' | 'doubles'
-let leaderboardFilter = 'all';    // 'all' | 'singles' | 'doubles'
-let timerInterval = null;
+  const input = document.getElementById('playerInput');
 
-/* ============================================================
-   PERSISTENCE
-   ============================================================ */
-function save() {
-    localStorage.setItem('pickleballPro', JSON.stringify({
-        sessions: state.sessions,
-        activeSessionId: state.activeSessionId,
-        courts: state.courts,
-        timers: state.timers
-    }));
-}
-
-function load() {
-    const raw = localStorage.getItem('pickleballPro');
-    if (raw) {
-        try {
-            const data = JSON.parse(raw);
-            state.sessions = data.sessions || [];
-            state.activeSessionId = data.activeSessionId;
-            state.courts = data.courts || ['Court 1','Court 2','Court 3','Court 4'];
-            state.timers = data.timers || {};
-        } catch(e) { console.warn('Load failed', e); }
-    }
-
-    if (state.sessions.length === 0) {
-        const old = localStorage.getItem('pickleballPlayers');
-        const defaultSession = createSessionObject('Default Session');
-        if (old) {
-            try {
-                const oldPlayers = JSON.parse(old);
-                defaultSession.players = oldPlayers.map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    court: p.court,
-                    score: p.score,
-                    wins: 0, losses: 0, games: 0,
-                    singlesWins: 0, singlesLosses: 0, singlesGames: 0,
-                    doublesWins: 0, doublesLosses: 0, doublesGames: 0
-                }));
-            } catch(e) {}
-        }
-        state.sessions.push(defaultSession);
-        state.activeSessionId = defaultSession.id;
-        save();
-    }
-
-    if (!state.activeSessionId && state.sessions[0]) {
-        state.activeSessionId = state.sessions[0].id;
-    }
-}
-
-/* ============================================================
-   SESSION HELPERS
-   ============================================================ */
-function createSessionObject(name) {
-    return {
-        id: 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-        name: name,
-        createdAt: Date.now(),
-        players: [],
-        matches: []
-    };
-}
-
-function getActiveSession() {
-    return state.sessions.find(s => s.id === state.activeSessionId);
-}
-
-function switchSession(id) {
-    state.activeSessionId = id;
-    stopAllTimers();
-    save();
-    renderAll();
-    toast('Switched to ' + getActiveSession().name);
-}
-
-function openNewSessionModal() {
-    openModal(`
-        <button class="modal-close" onclick="closeModal()">×</button>
-        <h3>📅 New Session</h3>
-        <div class="field" style="margin-bottom:14px;">
-            <label>Session Name</label>
-            <input type="text" id="newSessionName" placeholder="e.g., Monday Night League" maxlength="40">
-        </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="createSession()">Create Session</button>
-        <div style="margin-top:18px; border-top:1px solid var(--border); padding-top:14px;">
-            <div style="font-size:0.82em; color:var(--muted); margin-bottom:8px; font-weight:600;">EXISTING SESSIONS</div>
-            ${state.sessions.map(s => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
-                    <span style="font-weight:600;">${escapeHtml(s.name)}</span>
-                    ${state.sessions.length > 1 ? `<button class="btn btn-danger btn-xs" onclick="deleteSession('${s.id}')">Delete</button>` : ''}
-                </div>
-            `).join('')}
-        </div>
-    `);
-    setTimeout(() => document.getElementById('newSessionName')?.focus(), 100);
-}
-
-function createSession() {
-    const name = document.getElementById('newSessionName').value.trim();
-    if (!name) { toast('Enter a session name'); return; }
-    const s = createSessionObject(name);
-    state.sessions.push(s);
-    state.activeSessionId = s.id;
-    save();
-    closeModal();
-    renderAll();
-    toast('Session created');
-}
-
-function deleteSession(id) {
-    if (state.sessions.length <= 1) { toast('Cannot delete last session'); return; }
-    if (!confirm('Delete this session and all its data?')) return;
-    state.sessions = state.sessions.filter(s => s.id !== id);
-    if (state.activeSessionId === id) state.activeSessionId = state.sessions[0].id;
-    save();
-    closeModal();
-    renderAll();
-    toast('Session deleted');
-}
-
-/* ============================================================
-   TABS
-   ============================================================ */
-function switchTab(name) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
-}
-
-/* ============================================================
-   MATCH TYPE (SINGLES / DOUBLES)
-   ============================================================ */
-function setMatchType(type) {
-    currentMatchType = type;
-
-    document.getElementById('btnSingles').classList.toggle('active', type === 'singles');
-    document.getElementById('btnDoubles').classList.toggle('active', type === 'doubles');
-
-    const hint = document.getElementById('matchTypeHint');
-    if (type === 'singles') {
-        hint.textContent = '1 player per team — classic one-on-one pickleball';
-    } else {
-        hint.textContent = '2 players per team — grab a partner for doubles action';
-    }
-
-    // Show/hide partner dropdowns
-    document.querySelectorAll('.partner-slot').forEach(el => {
-        el.classList.toggle('hidden', type === 'singles');
-        if (type === 'singles') el.value = ''; // clear partner selection
-    });
-
-    updateTeamPreview();
-}
-
-function updateTeamPreview() {
-    const session = getActiveSession();
-    const nameOf = id => {
-        if (!id) return null;
-        const p = session.players.find(x => String(x.id) === String(id));
-        return p ? p.name : null;
-    };
-
-    const renderPreview = (team) => {
-        const p1 = nameOf(document.getElementById(`team${team}1`).value);
-        const p2 = currentMatchType === 'doubles' ? nameOf(document.getElementById(`team${team}2`).value) : null;
-        const names = [p1, p2].filter(Boolean);
-
-        if (names.length === 0) {
-            return `<span style="opacity:0.5;">No players selected</span>`;
-        }
-        return names.map(n =>
-            `<span style="display:inline-flex; align-items:center; gap:5px;">
-                <span class="avatar-mini">${escapeHtml(n.slice(0,1).toUpperCase())}</span>
-                <span>${escapeHtml(n)}</span>
-            </span>`
-        ).join('<span style="opacity:0.4;"> + </span>');
-    };
-
-    document.getElementById('teamAPreview').innerHTML = renderPreview('A');
-    document.getElementById('teamBPreview').innerHTML = renderPreview('B');
-}
-
-/* ============================================================
-   PLAYER OPERATIONS
-   ============================================================ */
-function addPlayer() {
-    const nameInput = document.getElementById('playerName');
-    const courtSelect = document.getElementById('courtSelect');
-    const name = nameInput.value.trim();
-    const court = courtSelect.value;
-    const session = getActiveSession();
-
-    if (!name) { toast('Enter a player name'); return; }
-    if (session.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-        toast('Player already exists'); return;
-    }
-
-    session.players.push({
-        id: Date.now() + Math.random(),
-        name, court, score: 0,
-        wins: 0, losses: 0, games: 0,
-        singlesWins: 0, singlesLosses: 0, singlesGames: 0,
-        doublesWins: 0, doublesLosses: 0, doublesGames: 0
-    });
-
-    save(); renderAll();
-    nameInput.value = '';
-    nameInput.focus();
-    toast(name + ' added to ' + court);
-}
-
-function updateScore(playerId, delta) {
-    const p = getActiveSession().players.find(x => x.id === playerId);
-    if (!p) return;
-    p.score = Math.max(0, p.score + delta);
-    save(); renderCourts(); renderStats();
-}
-
-function deletePlayer(playerId) {
-    const session = getActiveSession();
-    const p = session.players.find(x => x.id === playerId);
-    if (!p) return;
-    if (!confirm(`Remove ${p.name}?`)) return;
-    session.players = session.players.filter(x => x.id !== playerId);
-    save(); renderAll();
-    toast('Player removed');
-}
-
-function resetScores() {
-    if (!confirm('Reset all scores to 0?')) return;
-    getActiveSession().players.forEach(p => p.score = 0);
-    save(); renderCourts(); renderStats();
-    toast('Scores reset');
-}
-
-/* ============================================================
-   MATCH OPERATIONS
-   ============================================================ */
-function logMatch() {
-    const session = getActiveSession();
-    const a1 = document.getElementById('teamA1').value;
-    const a2 = currentMatchType === 'doubles' ? document.getElementById('teamA2').value : '';
-    const b1 = document.getElementById('teamB1').value;
-    const b2 = currentMatchType === 'doubles' ? document.getElementById('teamB2').value : '';
-    const scoreA = parseInt(document.getElementById('scoreA').value) || 0;
-    const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
-
-    // Validation
-    if (!a1 || !b1) { toast('Select at least one player per team'); return; }
-
-    if (currentMatchType === 'doubles') {
-        if (!a2 || !b2) { toast('Doubles requires 2 players per team'); return; }
-        if (a2 === a1) { toast('Team A players must be different'); return; }
-        if (b2 === b1) { toast('Team B players must be different'); return; }
-    }
-
-    if (scoreA === scoreB) { toast('Scores cannot be tied'); return; }
-
-    const teamAIds = [a1, a2].filter(Boolean);
-    const teamBIds = [b1, b2].filter(Boolean);
-
-    if (teamAIds.some(id => teamBIds.includes(id))) {
-        toast('A player cannot be on both teams'); return;
-    }
-
-    const match = {
-        id: 'm_' + Date.now(),
-        type: currentMatchType, // 'singles' or 'doubles'
-        teamA: teamAIds,
-        teamB: teamBIds,
-        scoreA, scoreB,
-        winner: scoreA > scoreB ? 'A' : 'B',
-        date: Date.now()
-    };
-    session.matches.unshift(match);
-
-    // Update player stats (overall + per-type)
-    const updateStats = (id, won) => {
-        const p = session.players.find(x => String(x.id) === String(id));
-        if (!p) return;
-
-        // Overall stats
-        p.games = (p.games || 0) + 1;
-        if (won) p.wins = (p.wins || 0) + 1;
-        else p.losses = (p.losses || 0) + 1;
-
-        // Type-specific stats
-        const typeKey = currentMatchType; // 'singles' or 'doubles'
-        p[`${typeKey}Games`] = (p[`${typeKey}Games`] || 0) + 1;
-        if (won) p[`${typeKey}Wins`] = (p[`${typeKey}Wins`] || 0) + 1;
-        else p[`${typeKey}Losses`] = (p[`${typeKey}Losses`] || 0) + 1;
-    };
-    teamAIds.forEach(id => updateStats(id, match.winner === 'A'));
-    teamBIds.forEach(id => updateStats(id, match.winner === 'B'));
-
-    save(); renderAll();
-    document.getElementById('scoreA').value = 11;
-    document.getElementById('scoreB').value = 7;
-
-    // Clear partner selections after logging (keep first player for speed)
-    if (currentMatchType === 'doubles') {
-        document.getElementById('teamA2').value = '';
-        document.getElementById('teamB2').value = '';
-        updateTeamPreview();
-    }
-
-    toast(`${currentMatchType === 'singles' ? '👤' : '👥'} ${currentMatchType} match logged! 🏆`);
-}
-
-function deleteMatch(matchId) {
-    if (!confirm('Delete this match? Player stats will not be recalculated.')) return;
-    const session = getActiveSession();
-    session.matches = session.matches.filter(m => m.id !== matchId);
-    save(); renderAll();
-    toast('Match deleted');
-}
-
-/* ============================================================
-   LEADERBOARD FILTER
-   ============================================================ */
-function setLeaderboardFilter(filter) {
-    leaderboardFilter = filter;
-    document.querySelectorAll('.lb-filter-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.filter === filter);
-    });
-    renderLeaderboard();
-}
-
-/* ============================================================
-   TIMER OPERATIONS
-   ============================================================ */
-function startTimer(court) {
-    const now = Date.now();
-    if (!state.timers[court]) {
-        state.timers[court] = { start: now, elapsed: 0, running: true };
-    } else {
-        state.timers[court].start = now;
-        state.timers[court].running = true;
-    }
-    save(); renderCourts();
-    ensureTimerTick();
-}
-
-function pauseTimer(court) {
-    const t = state.timers[court];
-    if (!t || !t.running) return;
-    t.elapsed = (t.elapsed || 0) + (Date.now() - t.start);
-    t.running = false;
-    save(); renderCourts();
-}
-
-function resetTimer(court) {
-    delete state.timers[court];
-    save(); renderCourts();
-}
-
-function getElapsed(court) {
-    const t = state.timers[court];
-    if (!t) return 0;
-    return (t.elapsed || 0) + (t.running ? Date.now() - t.start : 0);
-}
-
-function formatTime(ms) {
-    const total = Math.floor(ms / 1000);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-
-function ensureTimerTick() {
-    if (timerInterval) return;
-    timerInterval = setInterval(() => {
-        let anyRunning = false;
-        for (const c of state.courts) {
-            if (state.timers[c]?.running) { anyRunning = true; break; }
-        }
-        if (!anyRunning) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            return;
-        }
-        for (const c of state.courts) {
-            const el = document.querySelector(`[data-timer="${CSS.escape(c)}"]`);
-            if (el) {
-                const ms = getElapsed(c);
-                el.textContent = formatTime(ms);
-                el.className = 'timer-display ' + timerClass(ms);
-            }
-        }
-    }, 500);
-}
-
-function timerClass(ms) {
-    const min = ms / 60000;
-    if (min >= 20) return 'danger';
-    if (min >= 15) return 'warning';
-    if (min > 0) return 'running';
-    return '';
-}
-
-/* ============================================================
-   RENDER
-   ============================================================ */
-/* ============================================================
-   RENDER
-   ============================================================ */
-function renderAll() {
-    // Ensure active session is always valid & arrays exist
-    if (!Array.isArray(state.sessions) || state.sessions.length === 0) {
-        state.sessions = [createSessionObject('Default Session')];
-        state.activeSessionId = state.sessions[0].id;
-    }
-    let session = getActiveSession();
-    if (!session) {
-        state.activeSessionId = state.sessions[0].id;
-        session = state.sessions[0];
-    }
-    if (!Array.isArray(session.players)) session.players = [];
-    if (!Array.isArray(session.matches)) session.matches = [];
-
-    renderSessionSelect();
-    renderCourtOptions();
-    renderStats();
-    renderCourts();
-    renderMatchForm();
-    renderMatchHistory();
-    renderLeaderboard();
-    renderProfiles();
-}
-
-function renderSessionSelect() {
-    const sel = document.getElementById('sessionSelect');
-    sel.innerHTML = state.sessions.map(s =>
-        `<option value="${s.id}" ${s.id===state.activeSessionId?'selected':''}>${escapeHtml(s.name)}</option>`
-    ).join('');
-}
-
-function renderCourtOptions() {
-    const sel = document.getElementById('courtSelect');
-    sel.innerHTML = state.courts.map(c => `<option value="${c}">${c}</option>`).join('');
-}
-
-function renderStats() {
-    const session = getActiveSession();
-    const activeCourts = new Set(session.players.map(p => p.court)).size;
-    const topScore = session.players.length ? Math.max(...session.players.map(p => p.score)) : 0;
-    const singlesCount = session.matches.filter(m => m.type === 'singles').length;
-    const doublesCount = session.matches.filter(m => m.type === 'doubles').length;
-
-    document.getElementById('statsGrid').innerHTML = `
-        <div class="stat-box"><div class="stat-value">${session.players.length}</div><div class="stat-label">Players</div></div>
-        <div class="stat-box"><div class="stat-value">${activeCourts}</div><div class="stat-label">Active Courts</div></div>
-        <div class="stat-box"><div class="stat-value">${singlesCount}</div><div class="stat-label">👤 Singles</div></div>
-        <div class="stat-box"><div class="stat-value">${doublesCount}</div><div class="stat-label">👥 Doubles</div></div>
-    `;
-}
-
-function renderCourts() {
-    const session = getActiveSession();
-    const container = document.getElementById('courtsContainer');
-
-    if (session.players.length === 0) {
-        container.innerHTML = `
-            <div class="card empty">
-                <div class="empty-icon">🏓</div>
-                <h3>No players yet</h3>
-                <p>Add your first player to get started</p>
-            </div>`;
-        return;
-    }
-
-    const grouped = {};
-    state.courts.forEach(c => grouped[c] = []);
-    session.players.forEach(p => {
-        if (!grouped[p.court]) grouped[p.court] = [];
-        grouped[p.court].push(p);
-    });
-
-    container.innerHTML = state.courts.map(court => {
-        const players = grouped[court] || [];
-        if (players.length === 0) return '';
-        const t = state.timers[court];
-        const elapsed = getElapsed(court);
-        const running = t?.running;
-        const tClass = timerClass(elapsed);
-        const timerText = formatTime(elapsed);
-        const hasTimer = !!t;
-
-        return `
-            <div class="court-card">
-                <div class="court-head">
-                    <div class="court-name">🎾 ${escapeHtml(court)}</div>
-                    <div class="court-actions">
-                        <div class="timer-display ${tClass}" data-timer="${escapeHtml(court)}">${timerText}</div>
-                        ${running
-                            ? `<button class="btn btn-ghost btn-sm" onclick="pauseTimer('${jsStr(court)}')">⏸ Pause</button>`
-                            : `<button class="btn btn-success btn-sm" onclick="startTimer('${jsStr(court)}')">▶ Start</button>`}
-                        ${hasTimer ? `<button class="btn btn-ghost btn-sm" onclick="resetTimer('${jsStr(court)}')">↺</button>` : ''}
-                        <button class="btn btn-ghost btn-sm" onclick="showCourtQR('${jsStr(court)}')">📱 QR</button>
-                        <span class="badge badge-blue">${players.length} player${players.length!==1?'s':''}</span>
-                    </div>
-                </div>
-                <div class="player-list">
-                    ${players.map(p => {
-                        const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
-                        const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
-                        return `
-                        <div class="player-row">
-                            <div>
-                                <div class="player-name-lg">${escapeHtml(p.name)}</div>
-                                <div class="player-meta">
-                                    ${p.wins||0}W · ${p.losses||0}L · ${p.games||0} games
-                                    ${p.games ? `&nbsp;|&nbsp; 👤 ${singlesWR}% · 👥 ${doublesWR}%` : ''}
-                                </div>
-                            </div>
-                            <div class="score-controls">
-                                <button class="icon-btn minus" onclick="updateScore(${p.id}, -1)">−</button>
-                                <div class="score-num">${p.score}</div>
-                                <button class="icon-btn plus" onclick="updateScore(${p.id}, 1)">+</button>
-                                <button class="icon-btn trash" onclick="deletePlayer(${p.id})">🗑</button>
-                            </div>
-                        </div>
-                    `}).join('')}
-                </div>
-            </div>
-        `;
-    }).join('') + (
-        session.players.length > 0
-            ? `<button class="btn btn-danger" style="margin-top:14px;" onclick="resetScores()">🔄 Reset All Scores</button>`
-            : ''
-    );
-}
-
-function renderMatchForm() {
-    const session = getActiveSession();
-    const options = session.players.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-    const emptyOpt = '<option value="">— Select player —</option>';
-    const emptyOpt2 = '<option value="">— Optional partner —</option>';
-
-    ['teamA1','teamB1'].forEach(id => {
-        document.getElementById(id).innerHTML = emptyOpt + options;
-    });
-    ['teamA2','teamB2'].forEach(id => {
-        document.getElementById(id).innerHTML = emptyOpt2 + options;
-    });
-
-    // Sync match type UI
-    setMatchType(currentMatchType);
-}
-
-function renderMatchHistory() {
-    const session = getActiveSession();
-    const el = document.getElementById('matchHistory');
-    if (!session.matches.length) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">🏆</div><h3>No matches yet</h3><p>Log your first match above</p></div>`;
-        return;
-    }
-
-    el.innerHTML = session.matches.map(m => {
-        const nameOf = id => {
-            const p = session.players.find(x => String(x.id) === String(id));
-            return p ? escapeHtml(p.name) : 'Unknown';
-        };
-        const teamA = m.teamA.map(nameOf).join(' & ');
-        const teamB = m.teamB.map(nameOf).join(' & ');
-        const aWon = m.winner === 'A';
-        const date = new Date(m.date).toLocaleString();
-        const type = m.type || 'doubles'; // fallback for old matches
-        const typeIcon = type === 'singles' ? '👤' : '👥';
-
-        return `
-            <div class="match-item">
-                <div>
-                    <div class="match-teams">
-                        ${teamA} <span class="winner-tag">${aWon ? '👑 WINNER' : ''}</span>
-                    </div>
-                    <div class="match-teams" style="margin-top:4px;">
-                        ${teamB} <span class="winner-tag">${!aWon ? '👑 WINNER' : ''}</span>
-                    </div>
-                    <div class="match-date">
-                        <span class="match-type-tag ${type}">${typeIcon} ${type}</span>
-                        ${date}
-                    </div>
-                </div>
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <div class="match-score">${m.scoreA} – ${m.scoreB}</div>
-                    <button class="icon-btn trash" onclick="deleteMatch('${m.id}')">🗑</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function renderLeaderboard() {
-    const session = getActiveSession();
-    const el = document.getElementById('leaderboard');
-
-    if (!session.players.length) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><h3>No data yet</h3><p>Add players and log matches</p></div>`;
-        return;
-    }
-
-    // Determine which stats to sort by based on filter
-    const getStats = (p) => {
-        if (leaderboardFilter === 'singles') {
-            return {
-                wins: p.singlesWins || 0,
-                losses: p.singlesLosses || 0,
-                games: p.singlesGames || 0
-            };
-        }
-        if (leaderboardFilter === 'doubles') {
-            return {
-                wins: p.doublesWins || 0,
-                losses: p.doublesLosses || 0,
-                games: p.doublesGames || 0
-            };
-        }
-        return {
-            wins: p.wins || 0,
-            losses: p.losses || 0,
-            games: p.games || 0
-        };
-    };
-
-    const sorted = [...session.players].sort((a, b) => {
-        const sa = getStats(a), sb = getStats(b);
-        const wrA = sa.games ? sa.wins / sa.games : 0;
-        const wrB = sb.games ? sb.wins / sb.games : 0;
-        if (wrB !== wrA) return wrB - wrA;
-        return sb.wins - sa.wins;
-    });
-
-    // Only show players who have played in this mode (if filtering)
-    const filtered = leaderboardFilter === 'all'
-        ? sorted
-        : sorted.filter(p => getStats(p).games > 0);
-
-    if (filtered.length === 0) {
-        el.innerHTML = `<div class="empty">
-            <div class="empty-icon">${leaderboardFilter === 'singles' ? '👤' : '👥'}</div>
-            <h3>No ${leaderboardFilter} matches yet</h3>
-            <p>Log a ${leaderboardFilter} match to see rankings</p>
-        </div>`;
-        return;
-    }
-
-    el.innerHTML = `
-        <table class="lb-table">
-            <thead>
-                <tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Games</th><th>Win Rate</th></tr>
-            </thead>
-            <tbody>
-                ${filtered.map((p, i) => {
-                    const s = getStats(p);
-                    const wr = s.games ? Math.round(s.wins / s.games * 100) : 0;
-                    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-                    return `
-                        <tr>
-                            <td class="lb-rank ${rankClass}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
-                            <td>${escapeHtml(p.name)}</td>
-                            <td>${s.wins}</td>
-                            <td>${s.losses}</td>
-                            <td>${s.games}</td>
-                            <td>
-                                <div style="font-weight:700;">${wr}%</div>
-                                <div class="winrate-bar"><div class="winrate-fill" style="width:${wr}%"></div></div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
-function renderProfiles() {
-    const session = getActiveSession();
-    const el = document.getElementById('profiles');
-    if (!session.players.length) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><h3>No players yet</h3><p>Add players from the Courts tab</p></div>`;
-        return;
-    }
-
-    el.innerHTML = `<div class="profile-grid">${session.players.map(p => {
-        const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
-        const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
-        const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
-        return `
-            <div class="profile-card" onclick="showProfile(${p.id})">
-                <div class="profile-avatar">${escapeHtml(p.name.slice(0,1).toUpperCase())}</div>
-                <div class="profile-name">${escapeHtml(p.name)}</div>
-                <div class="profile-stats">
-                    <div><strong>${wr}%</strong>Overall</div>
-                    <div><strong>${singlesWR}%</strong>👤 Singles</div>
-                    <div><strong>${doublesWR}%</strong>👥 Doubles</div>
-                </div>
-            </div>
-        `;
-    }).join('')}</div>`;
-}
-
-/* ============================================================
-   QR CODES
-   ============================================================ */
-function showCourtQR(court) {
-    const session = getActiveSession();
-    const players = session.players.filter(p => p.court === court);
-    const url = location.origin + location.pathname + '?court=' + encodeURIComponent(court) + '&session=' + session.id;
-    openModal(`
-        <button class="modal-close" onclick="closeModal()">×</button>
-        <h3>📱 ${escapeHtml(court)} — Live View</h3>
-        <p style="color:var(--muted); font-size:0.9em; margin-bottom:8px;">Scan to see live scores for this court</p>
-        <div class="qr-box" id="qrTarget"></div>
-        <div style="margin-top:14px; padding:12px; background:#f9fafb; border-radius:10px; font-size:0.85em;">
-            <div style="font-weight:700; margin-bottom:6px;">Players on this court:</div>
-            ${players.map(p => `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${escapeHtml(p.name)}</span><strong style="color:var(--primary)">${p.score}</strong></div>`).join('') || '<div style="color:var(--muted)">No players</div>'}
-        </div>
-    `);
-    setTimeout(() => {
-        const target = document.getElementById('qrTarget');
-        target.innerHTML = '';
-        new QRCode(target, { text: url, width: 220, height: 220, colorDark: '#667eea', colorLight: '#ffffff' });
-    }, 50);
-}
-
-/* ============================================================
-   PROFILE MODAL
-   ============================================================ */
-function showProfile(playerId) {
-    const session = getActiveSession();
-    const p = session.players.find(x => x.id === playerId);
-    if (!p) return;
-    const wr = p.games ? Math.round(p.wins/p.games*100) : 0;
-    const singlesWR = p.singlesGames ? Math.round((p.singlesWins||0)/p.singlesGames*100) : 0;
-    const doublesWR = p.doublesGames ? Math.round((p.doublesWins||0)/p.doublesGames*100) : 0;
-
-    const recent = session.matches.filter(m =>
-        m.teamA.map(String).includes(String(playerId)) ||
-        m.teamB.map(String).includes(String(playerId))
-    ).slice(0, 5);
-
-    openModal(`
-        <button class="modal-close" onclick="closeModal()">×</button>
-        <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
-            <div class="profile-avatar" style="margin:0;">${escapeHtml(p.name.slice(0,1).toUpperCase())}</div>
-            <div>
-                <h3 style="margin:0;">${escapeHtml(p.name)}</h3>
-                <div style="color:var(--muted); font-size:0.85em;">${escapeHtml(p.court)}</div>
-            </div>
-        </div>
-
-        <div style="font-weight:700; margin-bottom:10px; font-size:0.9em;">Overall</div>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; text-align:center; margin-bottom:18px;">
-            <div><div style="font-size:1.5em; font-weight:800; color:var(--primary);">${p.wins||0}</div><div style="font-size:0.75em; color:var(--muted);">WINS</div></div>
-            <div><div style="font-size:1.5em; font-weight:800; color:var(--danger);">${p.losses||0}</div><div style="font-size:0.75em; color:var(--muted);">LOSSES</div></div>
-            <div><div style="font-size:1.5em; font-weight:800;">${p.games||0}</div><div style="font-size:0.75em; color:var(--muted);">GAMES</div></div>
-            <div><div style="font-size:1.5em; font-weight:800; color:var(--success);">${wr}%</div><div style="font-size:0.75em; color:var(--muted);">WIN RATE</div></div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
-            <div style="padding:12px; background:#eff6ff; border-radius:10px;">
-                <div style="font-weight:700; font-size:0.85em; color:#1e40af; margin-bottom:8px;">👤 Singles</div>
-                <div style="font-size:1.3em; font-weight:800; color:#1e40af;">${singlesWR}%</div>
-                <div style="font-size:0.78em; color:#1e40af; opacity:0.8;">${p.singlesWins||0}W · ${p.singlesLosses||0}L</div>
-            </div>
-            <div style="padding:12px; background:#f5f3ff; border-radius:10px;">
-                <div style="font-weight:700; font-size:0.85em; color:#5b21b6; margin-bottom:8px;">👥 Doubles</div>
-                <div style="font-size:1.3em; font-weight:800; color:#5b21b6;">${doublesWR}%</div>
-                <div style="font-size:0.78em; color:#5b21b6; opacity:0.8;">${p.doublesWins||0}W · ${p.doublesLosses||0}L</div>
-            </div>
-        </div>
-
-        <div style="font-weight:700; margin-bottom:10px; font-size:0.9em;">Recent Matches</div>
-        ${recent.length ? recent.map(m => {
-            const onA = m.teamA.map(String).includes(String(playerId));
-            const won = (onA && m.winner === 'A') || (!onA && m.winner === 'B');
-            const typeIcon = (m.type === 'singles') ? '👤' : '👥';
-            return `<div style="padding:8px 12px; background:#f9fafb; border-radius:8px; margin-bottom:6px; font-size:0.85em; display:flex; justify-content:space-between; align-items:center;">
-                <span>${typeIcon} ${m.scoreA} – ${m.scoreB}</span>
-                <span style="color:${won ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${won ? 'WIN' : 'LOSS'}</span>
-            </div>`;
-        }).join('') : '<div style="color:var(--muted); font-size:0.85em;">No matches yet</div>'}
-    `);
-}
-
-/* ============================================================
-   SYNC (Firebase-ready)
-   ============================================================ */
-function openSyncModal() {
-    const savedConfig = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
-    openModal(`
-        <button class="modal-close" onclick="closeModal()">×</button>
-        <h3>☁️ Cloud Sync</h3>
-        <p style="color:var(--muted); font-size:0.85em; margin-bottom:14px;">
-            Paste your Firebase Realtime Database URL to sync across devices.
-            Data will save to <code>/pickleball/&lt;sessionId&gt;</code>.
-        </p>
-        <div class="field" style="margin-bottom:12px;">
-            <label>Firebase DB URL</label>
-            <input type="text" id="fbUrl" placeholder="https://your-project.firebaseio.com" value="${escapeHtml(savedConfig.url||'')}">
-        </div>
-        <button class="btn btn-primary" style="width:100%; margin-bottom:8px;" onclick="saveSyncConfig()">💾 Save Config</button>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <button class="btn btn-success" onclick="pushToCloud()">⬆️ Push</button>
-            <button class="btn btn-ghost" onclick="pullFromCloud()">⬇️ Pull</button>
-        </div>
-        <div id="syncStatus" style="margin-top:12px; font-size:0.85em; color:var(--muted);"></div>
-    `);
-}
-
-function saveSyncConfig() {
-    const url = document.getElementById('fbUrl').value.trim();
-    localStorage.setItem('pickleballSyncConfig', JSON.stringify({ url }));
-    toast('Config saved');
-}
-
-async function pushToCloud() {
-    const config = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
-    if (!config.url) { toast('Set Firebase URL first'); return; }
-    const status = document.getElementById('syncStatus');
-    status.textContent = 'Pushing...';
-    try {
-        const session = getActiveSession();
-        const res = await fetch(`${config.url.replace(/\/$/,'')}/pickleball/${session.id}.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session, timers: state.timers, savedAt: Date.now() })
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        status.innerHTML = '<span style="color:var(--success)">✅ Pushed successfully</span>';
-        toast('Synced to cloud');
-    } catch(e) {
-        status.innerHTML = '<span style="color:var(--danger)">❌ ' + e.message + '</span>';
-    }
-}
-
-async function pullFromCloud() {
-    const config = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
-    if (!config.url) { toast('Set Firebase URL first'); return; }
-    const status = document.getElementById('syncStatus');
-    status.textContent = 'Pulling...';
-
-    try {
-        const session = getActiveSession();
-        const res = await fetch(`${config.url.replace(/\/$/,'')}/pickleball/${session.id}.json`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-
-        const data = await res.json();
-        if (!data) {
-            status.textContent = 'No data found for this session';
-            return;
-        }
-
-        // data might be the session directly OR wrapped in { session, timers }
-        const incoming = data.session ? data.session : data;
-        const timers = data.timers || {};
-
-        if (!incoming) {
-            status.textContent = 'No session data found';
-            return;
-        }
-
-        if (!confirm('Replace current session data with cloud data?')) return;
-
-        // ---- SANITIZE INCOMING SESSION ----
-        const safeSession = {
-            id: incoming.id || session.id,
-            name: incoming.name || session.name,
-            createdAt: incoming.createdAt || Date.now(),
-            players: Array.isArray(incoming.players)
-                ? incoming.players.map(normalizePlayer)
-                : [],
-            matches: Array.isArray(incoming.matches)
-                ? incoming.matches.map(normalizeMatch).filter(Boolean)
-                : []
-        };
-
-        const idx = state.sessions.findIndex(s => s.id === session.id);
-        state.sessions[idx] = safeSession;
-        state.timers = timers && typeof timers === 'object' ? timers : {};
-
-        save();
-        renderAll();
-        closeModal();
-        toast('Pulled from cloud ✅');
-    } catch (e) {
-        console.error(e);
-        status.innerHTML = '<span style="color:var(--danger)">❌ ' + e.message + '</span>';
-    }
-}
-
-/* ---- NORMALIZERS ---- */
-function normalizePlayer(p) {
-    p = p || {};
-    return {
-        id: p.id != null ? p.id : Date.now() + Math.random(),
-        name: typeof p.name === 'string' ? p.name : 'Unknown',
-        court: typeof p.court === 'string' ? p.court : 'Court 1',
-        score: Number(p.score) || 0,
-        wins: Number(p.wins) || 0,
-        losses: Number(p.losses) || 0,
-        games: Number(p.games) || 0,
-        singlesWins: Number(p.singlesWins) || 0,
-        singlesLosses: Number(p.singlesLosses) || 0,
-        singlesGames: Number(p.singlesGames) || 0,
-        doublesWins: Number(p.doublesWins) || 0,
-        doublesLosses: Number(p.doublesLosses) || 0,
-        doublesGames: Number(p.doublesGames) || 0
-    };
-}
-
-function normalizeMatch(m) {
-    if (!m || typeof m !== 'object') return null;
-    return {
-        id: m.id || 'm_' + Date.now() + Math.random(),
-        type: m.type === 'singles' ? 'singles' : 'doubles',
-        teamA: Array.isArray(m.teamA) ? m.teamA.map(String) : [],
-        teamB: Array.isArray(m.teamB) ? m.teamB.map(String) : [],
-        scoreA: Number(m.scoreA) || 0,
-        scoreB: Number(m.scoreB) || 0,
-        winner: m.winner === 'A' || m.winner === 'B'
-            ? m.winner
-            : (Number(m.scoreA) > Number(m.scoreB) ? 'A' : 'B'),
-        date: Number(m.date) || Date.now()
-    };
-}
-
-/* ============================================================
-   MODAL + TOAST + UTILITIES
-   ============================================================ */
-function openModal(html) {
-    document.getElementById('modalContent').innerHTML = html;
-    document.getElementById('modalOverlay').classList.add('show');
-}
-function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('show');
-}
-function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('show'), 2200);
-}
-function escapeHtml(t) {
-    const d = document.createElement('div');
-    d.textContent = t == null ? '' : String(t);
-    return d.innerHTML;
-}
-function jsStr(s) {
-    return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-}
-function stopAllTimers() {
-    Object.keys(state.timers).forEach(c => {
-        if (state.timers[c]?.running) pauseTimer(c);
-    });
-}
-
-/* ============================================================
-   INIT
-   ============================================================ */
-load();
-renderAll();
-document.getElementById('playerName').addEventListener('keypress', e => {
+  input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addPlayer();
-});
+  });
 
-ensureTimerTick();
+  function addPlayer() {
+    const name = input.value.trim();
+    if (!name) return;
+    if (players.some(p => p.toLowerCase() === name.toLowerCase())) {
+      alert('That player is already added!');
+      return;
+    }
+    players.push(name);
+    input.value = '';
+    input.focus();
+    renderPlayers();
+  }
 
-/* ============================================================
-   QR LANDING VIEW
-   ============================================================ */
-/* ============================================================
-   QR LANDING VIEW — fetches data from Firebase when available
-   ============================================================ */
-(async function handleQRLanding() {
-    const params = new URLSearchParams(location.search);
-    const court = params.get('court');
-    const sessionId = params.get('session');
-    if (!court) return;
+  function removePlayer(index) {
+    players.splice(index, 1);
+    renderPlayers();
+  }
 
-    // Show a loading screen first
-    document.body.innerHTML = `
-        <div style="min-height:100vh; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; font-family:'Segoe UI',sans-serif; color:white;">
-            <div style="text-align:center;">
-                <div style="font-size:3em; margin-bottom:12px;">🏓</div>
-                <div style="font-size:1.1em; opacity:0.9;">Loading live scores...</div>
+  function renderPlayers() {
+    const list = document.getElementById('playerList');
+    const badge = document.getElementById('countBadge');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+
+    badge.textContent = players.length;
+    shuffleBtn.disabled = players.length < 4;
+
+    if (players.length === 0) {
+      list.innerHTML = '<li class="empty-msg">No players yet. Add some above!</li>';
+      document.getElementById('resultsSection').classList.add('hidden');
+      return;
+    }
+
+    list.innerHTML = players.map((p, i) =>
+      `<li>
+        <span>${escapeHtml(p)}</span>
+        <button class="btn-remove" onclick="removePlayer(${i})">Remove</button>
+      </li>`
+    ).join('');
+  }
+
+  function shufflePlayers() {
+    if (players.length < 4) {
+      alert('You need at least 4 players to create a match!');
+      return;
+    }
+
+    // Fisher-Yates shuffle
+    const shuffled = [...players];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const matches = [];
+    const byes = [];
+    let i = 0;
+
+    // Create matches of 4 players
+    while (i + 3 < shuffled.length) {
+      matches.push({
+        team1: [shuffled[i], shuffled[i + 1]],
+        team2: [shuffled[i + 2], shuffled[i + 3]]
+      });
+      i += 4;
+    }
+
+    // Remaining players sit out
+    while (i < shuffled.length) {
+      byes.push(shuffled[i]);
+      i++;
+    }
+
+    renderMatches(matches, byes);
+  }
+
+  function renderMatches(matches, byes) {
+    const section = document.getElementById('resultsSection');
+    const container = document.getElementById('matches');
+
+    let html = '';
+
+    matches.forEach((m, idx) => {
+      html += `
+        <div class="match">
+          <div class="match-title">Court ${idx + 1}</div>
+          <div class="teams">
+            <div class="team">
+              <div class="team-label">Team A</div>
+              <div class="team-name">${escapeHtml(m.team1[0])} &amp; ${escapeHtml(m.team1[1])}</div>
             </div>
+            <div class="vs">VS</div>
+            <div class="team">
+              <div class="team-label">Team B</div>
+              <div class="team-name">${escapeHtml(m.team2[0])} &amp; ${escapeHtml(m.team2[1])}</div>
+            </div>
+          </div>
         </div>
-    `;
+      `;
+    });
 
-    let session = null;
-
-    // 1) Try local session first
-    if (sessionId) {
-        const local = state.sessions.find(s => s.id === sessionId);
-        if (local && Array.isArray(local.players) && local.players.length > 0) {
-            session = local;
-        }
-    }
-
-    // 2) If not found locally (or empty), fetch from Firebase
-    if (!session && sessionId) {
-        const config = JSON.parse(localStorage.getItem('pickleballSyncConfig') || '{}');
-        if (config.url) {
-            try {
-                const url = `${config.url.replace(/\/$/,'')}/pickleball/${sessionId}.json`;
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data) {
-                        const incoming = data.session ? data.session : data;
-                        if (incoming) {
-                            session = {
-                                id: incoming.id || sessionId,
-                                name: incoming.name || 'Pickleball Session',
-                                players: Array.isArray(incoming.players) ? incoming.players : [],
-                                matches: Array.isArray(incoming.matches) ? incoming.matches : []
-                            };
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn('Firebase fetch failed:', e);
-            }
-        }
-    }
-
-    // 3) Fall back to active session if still nothing
-    if (!session) {
-        const active = getActiveSession();
-        if (active) session = active;
-    }
-
-    // 4) If STILL nothing, show a friendly empty state
-    if (!session) {
-        document.body.innerHTML = `
-            <div style="min-height:100vh; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; font-family:'Segoe UI',sans-serif; padding:24px;">
-                <div style="background:white; border-radius:18px; padding:32px; max-width:400px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                    <div style="font-size:3em; margin-bottom:12px;">📭</div>
-                    <div style="font-weight:700; font-size:1.2em; margin-bottom:8px;">No data available</div>
-                    <div style="color:#6b7280; font-size:0.9em; margin-bottom:18px;">
-                        This court's scores haven't been synced to the cloud yet.
-                        Ask the scorekeeper to tap <strong>☁️ Sync → Push</strong>.
-                    </div>
-                    <button onclick="location.href=location.pathname" style="padding:12px 24px; background:#667eea; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:1em;">
-                        Open Full App
-                    </button>
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    const players = (session.players || []).filter(p => p.court === court);
-
-    document.body.innerHTML = `
-        <div style="min-height:100vh; background:linear-gradient(135deg,#667eea,#764ba2); padding:24px; font-family:'Segoe UI',sans-serif;">
-            <div style="max-width:600px; margin:0 auto;">
-                <div style="text-align:center; color:white; margin-bottom:24px;">
-                    <div style="font-size:2em; font-weight:800;">🏓 ${escapeHtml(session.name)}</div>
-                    <div style="opacity:0.9; margin-top:4px;">Live scores — ${escapeHtml(court)}</div>
-                </div>
-                <div style="background:white; border-radius:18px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                    ${players.length ? players.map(p => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #e5e7eb;">
-                            <div>
-                                <div style="font-weight:700; font-size:1.15em;">${escapeHtml(p.name)}</div>
-                                <div style="font-size:0.82em; color:#6b7280;">${p.wins||0}W · ${p.losses||0}L</div>
-                            </div>
-                            <div style="font-size:2em; font-weight:800; color:#667eea;">${p.score||0}</div>
-                        </div>
-                    `).join('') : '<div style="text-align:center; padding:40px; color:#999;">No players on this court yet</div>'}
-                    <div style="text-align:center; margin-top:20px;">
-                        <button onclick="location.href=location.pathname" style="padding:12px 24px; background:#667eea; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; font-size:1em;">
-                            Open Full App
-                        </button>
-                    </div>
-                </div>
-                <div style="text-align:center; color:rgba(255,255,255,0.75); margin-top:20px; font-size:0.85em;">
-                    🔄 Auto-refreshes every 10 seconds
-                </div>
-            </div>
+    if (byes.length > 0) {
+      html += `
+        <div class="bye">
+          <strong>⏸ Sitting out:</strong> ${byes.map(escapeHtml).join(', ')}
         </div>
-    `;
+      `;
+    }
 
-    setInterval(() => location.reload(), 10000);
-})();
+    container.innerHTML = html;
+    section.classList.remove('hidden');
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function clearAll() {
+    if (players.length === 0) return;
+    if (confirm('Remove all players?')) {
+      players = [];
+      renderPlayers();
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  renderPlayers();
 </script>
 </body>
 </html>

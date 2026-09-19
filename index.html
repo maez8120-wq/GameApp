@@ -1608,21 +1608,90 @@ async function pullFromCloud() {
     if (!config.url) { toast('Set Firebase URL first'); return; }
     const status = document.getElementById('syncStatus');
     status.textContent = 'Pulling...';
+
     try {
         const session = getActiveSession();
         const res = await fetch(`${config.url.replace(/\/$/,'')}/pickleball/${session.id}.json`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
+
         const data = await res.json();
-        if (!data?.session) { status.textContent = 'No data found'; return; }
+        if (!data) {
+            status.textContent = 'No data found for this session';
+            return;
+        }
+
+        // data might be the session directly OR wrapped in { session, timers }
+        const incoming = data.session ? data.session : data;
+        const timers = data.timers || {};
+
+        if (!incoming) {
+            status.textContent = 'No session data found';
+            return;
+        }
+
         if (!confirm('Replace current session data with cloud data?')) return;
+
+        // ---- SANITIZE INCOMING SESSION ----
+        const safeSession = {
+            id: incoming.id || session.id,
+            name: incoming.name || session.name,
+            createdAt: incoming.createdAt || Date.now(),
+            players: Array.isArray(incoming.players)
+                ? incoming.players.map(normalizePlayer)
+                : [],
+            matches: Array.isArray(incoming.matches)
+                ? incoming.matches.map(normalizeMatch).filter(Boolean)
+                : []
+        };
+
         const idx = state.sessions.findIndex(s => s.id === session.id);
-        state.sessions[idx] = data.session;
-        state.timers = data.timers || {};
-        save(); renderAll(); closeModal();
-        toast('Pulled from cloud');
-    } catch(e) {
+        state.sessions[idx] = safeSession;
+        state.timers = timers && typeof timers === 'object' ? timers : {};
+
+        save();
+        renderAll();
+        closeModal();
+        toast('Pulled from cloud ✅');
+    } catch (e) {
+        console.error(e);
         status.innerHTML = '<span style="color:var(--danger)">❌ ' + e.message + '</span>';
     }
+}
+
+/* ---- NORMALIZERS ---- */
+function normalizePlayer(p) {
+    p = p || {};
+    return {
+        id: p.id != null ? p.id : Date.now() + Math.random(),
+        name: typeof p.name === 'string' ? p.name : 'Unknown',
+        court: typeof p.court === 'string' ? p.court : 'Court 1',
+        score: Number(p.score) || 0,
+        wins: Number(p.wins) || 0,
+        losses: Number(p.losses) || 0,
+        games: Number(p.games) || 0,
+        singlesWins: Number(p.singlesWins) || 0,
+        singlesLosses: Number(p.singlesLosses) || 0,
+        singlesGames: Number(p.singlesGames) || 0,
+        doublesWins: Number(p.doublesWins) || 0,
+        doublesLosses: Number(p.doublesLosses) || 0,
+        doublesGames: Number(p.doublesGames) || 0
+    };
+}
+
+function normalizeMatch(m) {
+    if (!m || typeof m !== 'object') return null;
+    return {
+        id: m.id || 'm_' + Date.now() + Math.random(),
+        type: m.type === 'singles' ? 'singles' : 'doubles',
+        teamA: Array.isArray(m.teamA) ? m.teamA.map(String) : [],
+        teamB: Array.isArray(m.teamB) ? m.teamB.map(String) : [],
+        scoreA: Number(m.scoreA) || 0,
+        scoreB: Number(m.scoreB) || 0,
+        winner: m.winner === 'A' || m.winner === 'B'
+            ? m.winner
+            : (Number(m.scoreA) > Number(m.scoreB) ? 'A' : 'B'),
+        date: Number(m.date) || Date.now()
+    };
 }
 
 /* ============================================================

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pickleball Tournament — Multi-Round · Multi-Court</title>
+<title>Pickleball Tournament — Random Shuffle</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -32,7 +32,7 @@
 
   .input-row {
     display: grid;
-    grid-template-columns: 1fr 90px auto;
+    grid-template-columns: 1fr auto;
     gap: 10px;
     margin-bottom: 12px;
   }
@@ -85,10 +85,10 @@
   ul { list-style: none; }
   #playerList li {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: 1fr auto auto;
     gap: 8px;
     align-items: center;
-    padding: 10px 14px;
+    padding: 12px 14px;
     background: #f7f9fc;
     border-radius: 10px;
     margin-bottom: 8px;
@@ -99,16 +99,6 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .player-name { font-weight: 500; }
-  .player-score-input {
-    width: 65px;
-    padding: 6px 8px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    text-align: center;
-    font-weight: 600;
-    color: #2a5298;
-  }
   .record {
     font-size: 0.75rem;
     color: #777;
@@ -124,7 +114,7 @@
     padding: 30px; font-style: italic;
   }
 
-  /* ===== Court Picker ===== */
+  /* Court picker */
   .court-picker {
     background: #f7f9fc;
     border: 2px solid #e0e7f5;
@@ -221,7 +211,6 @@
     border-radius: 8px;
   }
 
-  /* Rounds input */
   .rounds-row {
     display: flex;
     align-items: center;
@@ -267,16 +256,7 @@
     margin-bottom: 10px; font-size: 0.95rem;
     text-transform: uppercase; letter-spacing: 0.5px;
     display: flex; justify-content: space-between; align-items: center;
-    gap: 8px;
   }
-  .balance-tag {
-    font-size: 0.75rem; padding: 3px 10px;
-    border-radius: 20px; font-weight: 600;
-    text-transform: none; letter-spacing: 0;
-  }
-  .balance-tag.good { background: #d4f5d4; color: #1e7a1e; }
-  .balance-tag.ok { background: #fff3cd; color: #8a6d00; }
-  .balance-tag.bad { background: #ffd6d6; color: #a10000; }
 
   .teams {
     display: grid;
@@ -297,21 +277,11 @@
     display: flex; justify-content: space-between; align-items: center;
   }
   .team-player {
-    display: flex; justify-content: space-between;
+    display: flex; justify-content: center;
     align-items: center; gap: 6px;
     padding: 4px 6px; border-radius: 6px;
-  }
-  .player-score-tag {
-    font-size: 0.75rem;
-    background: #e8eefc; color: #2a5298;
-    padding: 2px 7px; border-radius: 20px;
-    font-weight: 700;
-  }
-  .team-total {
-    margin-top: 8px; font-size: 0.8rem;
-    color: #2a5298; font-weight: 700;
-    background: #e8eefc; border-radius: 20px;
-    padding: 3px 8px; display: inline-block;
+    font-weight: 600;
+    font-size: 0.95rem;
   }
   .vs {
     font-weight: 800; color: #ffd60a;
@@ -483,8 +453,7 @@
   }
 
   @media (max-width: 480px) {
-    .input-row { grid-template-columns: 1fr 70px; }
-    .input-row .btn-add { grid-column: 1 / -1; }
+    .input-row { grid-template-columns: 1fr; }
     .teams { grid-template-columns: 1fr; }
     .vs { margin: 4px auto; }
   }
@@ -494,7 +463,7 @@
 <div class="container">
   <header>
     <h1>🏓 Pickleball Tournament</h1>
-    <p>Multi-round · Multi-court · Balanced · Editable</p>
+    <p>Multi-round · Multi-court · Random shuffle · Editable</p>
   </header>
 
   <div class="content">
@@ -502,10 +471,9 @@
     <div id="setupSection">
       <div class="input-row">
         <input type="text" id="playerInput" placeholder="Player name..." maxlength="30">
-        <input type="number" id="scoreInput" placeholder="Skill" min="1" max="10" value="5">
         <button class="btn-add" onclick="addPlayer()">Add</button>
       </div>
-      <p class="hint">💡 Skill 1–10. Players are balanced by total skill each round.</p>
+      <p class="hint">💡 Add players, pick how many courts and rounds, then start. Teams are shuffled randomly each round.</p>
 
       <h2>
         Players
@@ -593,8 +561,8 @@
 </div>
 
 <script>
-  let players = [];        // { id, name, score, baseScore, wins, losses }
-  let courtCount = 1;      // user-selected court count
+  let players = [];        // { id, name, wins, losses }
+  let courtCount = 1;
 
   let tournament = {
     active: false,
@@ -610,26 +578,19 @@
   let nextId = 1;
 
   const input = document.getElementById('playerInput');
-  const scoreInput = document.getElementById('scoreInput');
-
   input.addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
-  scoreInput.addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
 
   // ---------- Player management ----------
   function addPlayer() {
     if (tournament.active) return;
     const name = input.value.trim();
-    let score = parseInt(scoreInput.value, 10);
     if (!name) { input.focus(); return; }
-    if (isNaN(score)) score = 5;
-    score = Math.min(10, Math.max(1, score));
     if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
       alert('That player is already added!');
       return;
     }
-    players.push({ id: nextId++, name, score, baseScore: score, wins: 0, losses: 0 });
+    players.push({ id: nextId++, name, wins: 0, losses: 0 });
     input.value = '';
-    scoreInput.value = 5;
     input.focus();
     renderPlayers();
     updateCourtPreview();
@@ -640,15 +601,6 @@
     players = players.filter(p => p.id !== id);
     renderPlayers();
     updateCourtPreview();
-  }
-
-  function updateScore(id, value) {
-    const p = players.find(p => p.id === id);
-    if (!p) return;
-    let score = parseInt(value, 10);
-    if (isNaN(score)) score = 5;
-    p.score = Math.min(10, Math.max(1, score));
-    if (tournament.active && tournament.matches.length) renderMatches();
   }
 
   function getPlayer(id) { return players.find(p => p.id === id); }
@@ -670,10 +622,6 @@
       `<li>
         <span class="player-name">${escapeHtml(p.name)}</span>
         <span class="record">${p.wins}W · ${p.losses}L</span>
-        <input type="number" class="player-score-input" min="1" max="10"
-               value="${p.score}"
-               onchange="updateScore(${p.id}, this.value)"
-               title="Skill score 1-10">
         <button class="btn-remove" onclick="removePlayer(${p.id})">✕</button>
       </li>`
     ).join('');
@@ -686,7 +634,6 @@
     let newVal = courtCount + delta;
     if (newVal < 1) newVal = 1;
     if (newVal > maxCourts) newVal = maxCourts;
-    if (newVal < 1) newVal = 1; // in case 0 players
     courtCount = newVal;
     updateCourtPreview();
   }
@@ -695,7 +642,6 @@
     const maxCourtsByPlayers = Math.floor(players.length / 4);
     const usableCourts = Math.min(courtCount, Math.max(1, maxCourtsByPlayers));
 
-    // Clamp if too high
     if (courtCount > maxCourtsByPlayers && maxCourtsByPlayers >= 1) {
       courtCount = maxCourtsByPlayers;
     }
@@ -711,11 +657,9 @@
     const sitStat = document.getElementById('previewSitStat');
     sitStat.className = 'stat ' + (sitting === 0 ? 'ok' : 'warn');
 
-    // +/- button state
     document.getElementById('courtMinus').disabled = courtCount <= 1;
     document.getElementById('courtPlus').disabled = courtCount >= maxCourtsByPlayers;
 
-    // Note
     const note = document.getElementById('courtNote');
     if (players.length < 4) {
       note.textContent = 'Add at least 4 players to enable courts.';
@@ -768,7 +712,7 @@
     const numCourts = tournament.courts;
     const playersThisRound = numCourts * 4;
 
-    // Fair rotation
+    // Fair rotation: prioritize players who've played fewer games, then those who've sat out more
     const sorted = [...players].sort((a, b) => {
       const pa = tournament.playCount[a.id] || 0;
       const pb = tournament.playCount[b.id] || 0;
@@ -782,7 +726,7 @@
     const playing = sorted.slice(0, playersThisRound);
     const sitting = sorted.slice(playersThisRound);
 
-    // Shuffle playing pool
+    // Pure random shuffle of the playing pool
     for (let i = playing.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [playing[i], playing[j]] = [playing[j], playing[i]];
@@ -791,10 +735,9 @@
     // Build a court per group of 4
     for (let i = 0; i < playing.length; i += 4) {
       const court = playing.slice(i, i + 4);
-      const best = balanceCourt(court);
       tournament.matches.push({
-        team1: [best.t1[0].id, best.t1[1].id],
-        team2: [best.t2[0].id, best.t2[1].id],
+        team1: [court[0].id, court[1].id],
+        team2: [court[2].id, court[3].id],
         winner: null
       });
     }
@@ -806,25 +749,6 @@
 
     renderMatches();
     updateRoundHeader();
-  }
-
-  function balanceCourt(court) {
-    const splits = [
-      { t1: [court[0], court[1]], t2: [court[2], court[3]] },
-      { t1: [court[0], court[2]], t2: [court[1], court[3]] },
-      { t1: [court[0], court[3]], t2: [court[1], court[2]] }
-    ];
-    let best = null, bestDiff = Infinity;
-    for (const s of splits) {
-      const s1 = s.t1[0].score + s.t1[1].score;
-      const s2 = s.t2[0].score + s.t2[1].score;
-      const diff = Math.abs(s1 - s2);
-      if (diff < bestDiff || (diff === bestDiff && Math.random() < 0.5)) {
-        bestDiff = diff;
-        best = { t1: s.t1, t2: s.t2, s1, s2, diff };
-      }
-    }
-    return best;
   }
 
   // ---------- Render matches ----------
@@ -846,14 +770,6 @@
       const t2b = getPlayer(m.team2[1]);
       if (!t1a || !t1b || !t2a || !t2b) return;
 
-      const s1 = t1a.score + t1b.score;
-      const s2 = t2a.score + t2b.score;
-      const diff = Math.abs(s1 - s2);
-
-      let tagClass = 'good', tagText = '⚖️ Balanced';
-      if (diff >= 4) { tagClass = 'bad'; tagText = '⚠️ Uneven'; }
-      else if (diff >= 2) { tagClass = 'ok'; tagText = '🟡 Slight edge'; }
-
       const played = m.winner !== null;
       const t1Win = m.winner === 1;
       const t2Win = m.winner === 2;
@@ -862,7 +778,6 @@
         <div class="match ${played ? 'played' : ''}">
           <div class="match-title">
             <span>🎾 Court ${idx + 1}${played ? ' ✅' : ''}</span>
-            <span class="balance-tag ${tagClass}">${tagText} (Δ${diff})</span>
           </div>
           <div class="teams">
             <div class="team ${t1Win ? 'winner' : ''}">
@@ -872,14 +787,12 @@
               </div>
               ${teamPlayerRow(t1a)}
               ${teamPlayerRow(t1b)}
-              <div class="team-total">Total: ${s1}</div>
             </div>
             <div class="vs">VS</div>
             <div class="team ${t2Win ? 'winner' : ''}">
               <div class="team-label"><span>Team B ${t2Win ? '🏆' : ''}</span></div>
               ${teamPlayerRow(t2a)}
               ${teamPlayerRow(t2b)}
-              <div class="team-total">Total: ${s2}</div>
             </div>
           </div>
           ${!played ? `
@@ -901,7 +814,7 @@
     if (tournament.byes.length) {
       const names = tournament.byes.map(id => {
         const p = getPlayer(id);
-        return p ? `${escapeHtml(p.name)} (${p.score})` : null;
+        return p ? escapeHtml(p.name) : null;
       }).filter(Boolean);
       if (names.length) {
         html += `<div class="bye"><strong>⏸ Sitting out this round:</strong> ${names.join(', ')}</div>`;
@@ -913,10 +826,7 @@
   }
 
   function teamPlayerRow(p) {
-    return `<div class="team-player">
-      <span>${escapeHtml(p.name)}</span>
-      <span class="player-score-tag">${p.score}</span>
-    </div>`;
+    return `<div class="team-player">${escapeHtml(p.name)}</div>`;
   }
 
   function updateRoundHeader() {
@@ -981,7 +891,6 @@
             const p = getPlayer(id);
             return `<li onclick="chooseOutPlayer(${id})">
               <span>${escapeHtml(p.name)}</span>
-              <span class="player-score-tag">${p.score}</span>
             </li>`;
           }).join('')}
         </ul>
@@ -1004,7 +913,6 @@
           const where = isBye ? 'Sitting out' : 'Other court';
           return `<li onclick="doReplace(${outId}, ${p.id})">
             <span>${escapeHtml(p.name)} <small style="color:#999">— ${where}</small></span>
-            <span class="player-score-tag">${p.score}</span>
           </li>`;
         }).join('')}
       </ul>
@@ -1126,8 +1034,7 @@
 
     const sorted = [...players].sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
-      if (a.losses !== b.losses) return a.losses - b.losses;
-      return b.score - a.score;
+      return a.losses - b.losses;
     });
 
     const medalClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
@@ -1141,7 +1048,6 @@
             <th>W</th>
             <th>L</th>
             <th>Win %</th>
-            <th>Skill</th>
           </tr>
         </thead>
         <tbody>
@@ -1154,7 +1060,6 @@
               <td>${p.wins}</td>
               <td>${p.losses}</td>
               <td>${pct}%</td>
-              <td>${p.score}</td>
             </tr>`;
           }).join('')}
         </tbody>
